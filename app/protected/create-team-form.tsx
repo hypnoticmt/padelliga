@@ -49,7 +49,7 @@ export default function CreateTeamForm({ leagues }: { leagues: any[] }) {
 
       <SubmitButton
         type="submit"
-        className="px-4 py-2 rounded transition self-start"
+        className="flex flex-col gap-1"
       >
         Create Team
       </SubmitButton>
