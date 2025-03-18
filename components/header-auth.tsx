@@ -3,6 +3,7 @@ import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { createClient } from "@/utils/supabase/server";
+import { SubmitButton } from "./submit-button";
 
 export default async function AuthButton() {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export default async function AuthButton() {
     return (
       <div className="flex gap-4 items-center">
         <div className="flex gap-2">
-          <Button
+          <SubmitButton
             asChild
             size="sm"
             variant="outline"
@@ -23,8 +24,8 @@ export default async function AuthButton() {
             className="opacity-75 cursor-none pointer-events-none"
           >
             <Link href="/sign-in">Sign in</Link>
-          </Button>
-          <Button
+          </SubmitButton>
+          <SubmitButton
             asChild
             size="sm"
             variant="default"
@@ -32,7 +33,7 @@ export default async function AuthButton() {
             className="opacity-75 cursor-none pointer-events-none"
           >
             <Link href="/sign-up">Sign up</Link>
-          </Button>
+          </SubmitButton>
         </div>
       </div>
     );
@@ -48,6 +49,7 @@ export default async function AuthButton() {
           <Link href="/protected/create-team" className="hover:underline">
             Create Team
           </Link>
+          <Link href="/join-team" className="hover:underline">Join a Team</Link>
           <Link href="/protected/book-match" className="hover:underline">
             Book Match
           </Link>
