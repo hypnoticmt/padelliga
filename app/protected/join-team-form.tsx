@@ -3,6 +3,7 @@
 
 import { useState, FormEvent, useMemo } from "react";
 import { joinTeamAction } from "@/app/protected/join-team/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 interface League {
   id: string;
@@ -46,7 +47,7 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
       {/* League Dropdown */}
       <label className="flex flex-col gap-1">
-        <span className="text-sm">Select a League</span>
+        <span className="text-lg">Select a League</span>
         <select
           name="leagueId" // not strictly needed for the join action, but we can keep it
           value={selectedLeague}
@@ -68,7 +69,7 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
 
       {/* Team Dropdown (Filtered by selectedLeague) */}
       <label className="flex flex-col gap-1">
-        <span className="text-sm">Select a Team</span>
+        <span className="text-lg">Select a Team</span>
         <select
           name="teamId"
           value={selectedTeam}
@@ -85,12 +86,12 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
         </select>
       </label>
 
-      <button
+      <SubmitButton
         type="submit"
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition self-start"
+        className="flex flex-col gap-1"
       >
         Join Team
-      </button>
+      </SubmitButton>
 
       {message && <p className="text-sm mt-2">{message}</p>}
     </form>
