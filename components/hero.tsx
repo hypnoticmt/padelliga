@@ -1,44 +1,23 @@
-import NextLogo from "./next-logo";
-import SupabaseLogo from "./supabase-logo";
+import { Button } from "./ui/button";
+import Link from "next/link";
 
-export default function Header() {
+export default function Hero() {
   return (
-    <div className="flex flex-col gap-16 items-center">
-      <div className="flex gap-8 justify-center items-center">
-        <a
-          href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <SupabaseLogo />
-        </a>
-        <span className="border-l rotate-45 h-6" />
-        <a href="https://nextjs.org/" target="_blank" rel="noreferrer">
-          <NextLogo />
-        </a>
-      </div>
-      <h1 className="sr-only">Supabase and Next.js Starter Template</h1>
-      <p className="text-3xl lg:text-4xl !leading-tight mx-auto max-w-xl text-center">
-        The fastest way to build apps with{" "}
-        <a
-          href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-          target="_blank"
-          className="font-bold hover:underline"
-          rel="noreferrer"
-        >
-          Supabase
-        </a>{" "}
-        and{" "}
-        <a
-          href="https://nextjs.org/"
-          target="_blank"
-          className="font-bold hover:underline"
-          rel="noreferrer"
-        >
-          Next.js
-        </a>
+    <div className="flex flex-col gap-8 items-center py-16">
+      {/* Visible H1 */}
+      <h1 className="text-4xl lg:text-5xl font-bold text-center">
+        Padel Liga
+      </h1>
+      {/* Subheadline */}
+      <p className="text-lg lg:text-xl text-center max-w-xl mx-auto">
+        Join leagues, track scores, and stay up-to-date with match results—all in one place.
       </p>
-      <div className="w-full p-[1px] bg-gradient-to-r from-transparent via-foreground/10 to-transparent my-8" />
-    </div>
+      <div>
+      <Button asChild size="lg" variant={"default"}>
+        <Link href="/sign-up">Get started</Link>
+      </Button>
+  </div>
+</div>
+    
   );
 }

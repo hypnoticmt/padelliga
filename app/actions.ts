@@ -6,6 +6,9 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const signUpAction = async (formData: FormData) => {
+  const name = formData.get("name")?.toString();
+  const surname = formData.get("surname")?.toString();
+  const phone = formData.get("phonenumber")?.toString();
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const supabase = await createClient();
@@ -19,25 +22,41 @@ export const signUpAction = async (formData: FormData) => {
     );
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
+      // Optionally also store in metadata if needed:
+      data: { name, surname, phone},
     },
   });
-
+  
   if (error) {
     console.error(error.code + " " + error.message);
     return encodedRedirect("error", "/sign-up", error.message);
-  } else {
-    return encodedRedirect(
-      "success",
-      "/sign-up",
-      "Thanks for signing up! Please check your email for a verification link.",
-    );
   }
-};
+  
+  // If sign-up is successful, create a record in the players table
+  if (data?.user) {
+    const { error: profileError } = await supabase.from("players").insert({
+      user_id: data.user.id,
+      name: name,
+      surname: surname,
+      phone: phone,
+    });
+    if (profileError) {
+      console.error("Error creating player profile:", profileError.message);
+      // Optionally handle this error (e.g., cleanup the user record or notify the user)
+    }
+  }
+  
+  return encodedRedirect(
+    "success",
+    "/sign-up",
+    "Thanks for signing up! Please check your email for a verification link."
+  );
+}  
 
 export const signInAction = async (formData: FormData) => {
   const email = formData.get("email") as string;
