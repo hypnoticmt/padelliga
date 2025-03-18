@@ -76,7 +76,7 @@ export default function BookMatchForm({ teams }: { teams: any[] }) {
 
       <SubmitButton
         type="submit"
-        className="px-4 py-2 rounded transition self-start"
+        className="flex flex-col gap-1"
       >
         Book Match
       </SubmitButton>
