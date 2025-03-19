@@ -54,3 +54,4 @@ export async function joinTeamAction(formData: FormData) {
     // Optionally return a success message
     return { message: "Team joined successfully" };
   };
+  

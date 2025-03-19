@@ -53,6 +53,9 @@ export default async function AuthButton() {
           <Link href="/protected/book-match" className="hover:underline">
             Book Match
           </Link>
+          <Link href="/protected/leaderboards" className="hover:underline">
+            Leaderboards
+          </Link>
         </nav>
 
         {/* Greet the user */}
