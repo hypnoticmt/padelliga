@@ -1,4 +1,4 @@
-// app/league/[leagueId]/leaderboard/page.tsx
+// app/protected/league/[leagueId]/leaderboard/page.tsx
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -12,14 +12,17 @@ interface TeamLeaderboardRow {
   gamesDifference: number;
 }
 
-export default async function LeaderboardPage({
-  params,
-}: {
-  params: { leagueId: string };
-}) {
+// 1) Define the prop types for Next.js 13 dynamic routes
+type LeaderboardPageProps = {
+  params: {
+    leagueId: string;
+  };
+};
+
+export default async function LeaderboardPage({ params }: LeaderboardPageProps) {
   const supabase = await createClient();
 
-  // (Optional) Check if the user is logged in.
+  // (Optional) Check if the user is logged in
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -34,39 +37,45 @@ export default async function LeaderboardPage({
     .from("teams")
     .select("*")
     .eq("league_id", leagueId);
+
   if (teamsError) {
     console.error("Error fetching teams:", teamsError.message);
     return <p>Error fetching teams.</p>;
   }
   const teamList = teams ?? [];
 
-  // Prepare an array for leaderboard rows.
+  // Prepare an array for leaderboard rows
   const leaderboard: TeamLeaderboardRow[] = [];
 
-  // For each team, gather players and compute match statistics.
+  // For each team, gather players and compute match statistics
   for (const team of teamList) {
-    // 2. Fetch players for the team.
+    // 2. Fetch players for the team
     const { data: players, error: playersError } = await supabase
       .from("players")
       .select("name, surname")
       .eq("team_id", team.id);
+
     if (playersError) {
       console.error(`Error fetching players for team ${team.id}:`, playersError.message);
       continue;
     }
     const teamPlayers = players ?? [];
-    const player1 = teamPlayers[0]
-      ? `${teamPlayers[0].name} ${teamPlayers[0].surname}`
+
+    // Sort players by name so you consistently pick player1, player2
+    const sortedPlayers = teamPlayers.sort((a, b) => a.name.localeCompare(b.name));
+    const player1 = sortedPlayers[0]
+      ? `${sortedPlayers[0].name} ${sortedPlayers[0].surname}`
       : "";
-    const player2 = teamPlayers[1]
-      ? `${teamPlayers[1].name} ${teamPlayers[1].surname}`
+    const player2 = sortedPlayers[1]
+      ? `${sortedPlayers[1].name} ${sortedPlayers[1].surname}`
       : "";
 
-    // 3. Fetch all matches in which the team played.
+    // 3. Fetch all matches in which the team played
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
       .select("*")
       .or(`team1_id.eq.${team.id},team2_id.eq.${team.id}`);
+
     if (matchesError) {
       console.error(`Error fetching matches for team ${team.id}:`, matchesError.message);
       continue;
@@ -80,13 +89,12 @@ export default async function LeaderboardPage({
 
     // Process each match
     for (const match of matchList) {
-      // We'll compute if this team won the match by counting sets from match_sets
       let setsWon = 0;
       let setsLost = 0;
       let teamGames = 0;
       let opponentGames = 0;
 
-      // 3B. Fetch match sets for the match.
+      // 3B. Fetch match sets for the match
       const { data: sets, error: setsError } = await supabase
         .from("match_sets")
         .select("*")
@@ -100,6 +108,7 @@ export default async function LeaderboardPage({
       const setList = sets ?? [];
 
       console.log(`Match: ${match.id}, Team: ${team.id} => Found ${setList.length} sets`);
+
       // For each set, see if this team is match.team1_id or match.team2_id
       for (const set of setList) {
         console.log("  Processing set:", set);
@@ -121,7 +130,6 @@ export default async function LeaderboardPage({
         }
       }
 
-      // Log the final tally for this match
       console.log(
         `  => setsWon: ${setsWon}, setsLost: ${setsLost}, teamGames: ${teamGames}, oppGames: ${opponentGames}`
       );
