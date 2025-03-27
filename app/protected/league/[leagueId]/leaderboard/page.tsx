@@ -1,28 +1,18 @@
-// app/protected/league/[leagueId]/leaderboard/page.tsx
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-interface TeamLeaderboardRow {
-  teamId: string;
-  teamName: string;
-  player1: string;
-  player2: string;
-  points: number;
-  setDifference: number;
-  gamesDifference: number;
-}
-
-// 1) Define the prop types for Next.js 13 dynamic routes
-type LeaderboardPageProps = {
-  params: {
-    leagueId: string;
-  };
-};
-
-export default async function LeaderboardPage({ params }: LeaderboardPageProps) {
+export default async function LeaderboardPage({
+  params,
+  searchParams,
+}: {
+  // "params" for dynamic route segments
+  params: { leagueId: string };
+  // "searchParams" is optional, but Next might require it in the signature
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   const supabase = await createClient();
 
-  // (Optional) Check if the user is logged in
+  // If you want to enforce auth:
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -30,7 +20,7 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
     redirect("/sign-in");
   }
 
-  const leagueId = params.leagueId;
+  const { leagueId } = params;
 
   // 1. Fetch teams in the league.
   const { data: teams, error: teamsError } = await supabase
@@ -44,12 +34,20 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
   }
   const teamList = teams ?? [];
 
-  // Prepare an array for leaderboard rows
-  const leaderboard: TeamLeaderboardRow[] = [];
+  // Prepare an array for leaderboard rows.
+  const leaderboard: {
+    teamId: string;
+    teamName: string;
+    player1: string;
+    player2: string;
+    points: number;
+    setDifference: number;
+    gamesDifference: number;
+  }[] = [];
 
-  // For each team, gather players and compute match statistics
+  // For each team, gather players and compute match statistics.
   for (const team of teamList) {
-    // 2. Fetch players for the team
+    // 2. Fetch players for the team.
     const { data: players, error: playersError } = await supabase
       .from("players")
       .select("name, surname")
@@ -61,16 +59,12 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
     }
     const teamPlayers = players ?? [];
 
-    // Sort players by name so you consistently pick player1, player2
+    // Sort players by name
     const sortedPlayers = teamPlayers.sort((a, b) => a.name.localeCompare(b.name));
-    const player1 = sortedPlayers[0]
-      ? `${sortedPlayers[0].name} ${sortedPlayers[0].surname}`
-      : "";
-    const player2 = sortedPlayers[1]
-      ? `${sortedPlayers[1].name} ${sortedPlayers[1].surname}`
-      : "";
+    const player1 = sortedPlayers[0] ? `${sortedPlayers[0].name} ${sortedPlayers[0].surname}` : "";
+    const player2 = sortedPlayers[1] ? `${sortedPlayers[1].name} ${sortedPlayers[1].surname}` : "";
 
-    // 3. Fetch all matches in which the team played
+    // 3. Fetch all matches in which the team played.
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
       .select("*")
@@ -82,7 +76,6 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
     }
     const matchList = matches ?? [];
 
-    // Initialize totals for this team across ALL matches
     let points = 0;
     let setDiff = 0;
     let gamesDiff = 0;
@@ -94,7 +87,7 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
       let teamGames = 0;
       let opponentGames = 0;
 
-      // 3B. Fetch match sets for the match
+      // 3B. Fetch match sets for the match.
       const { data: sets, error: setsError } = await supabase
         .from("match_sets")
         .select("*")
@@ -114,14 +107,12 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
         console.log("  Processing set:", set);
 
         if (match.team1_id === team.id) {
-          // If team1, then a set_winner of 1 means a win for this team
           if (set.set_winner === 1) setsWon++;
           else if (set.set_winner === 2) setsLost++;
 
           teamGames += set.team1_games;
           opponentGames += set.team2_games;
         } else if (match.team2_id === team.id) {
-          // If team2, then a set_winner of 2 means a win for this team
           if (set.set_winner === 2) setsWon++;
           else if (set.set_winner === 1) setsLost++;
 
@@ -134,17 +125,15 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
         `  => setsWon: ${setsWon}, setsLost: ${setsLost}, teamGames: ${teamGames}, oppGames: ${opponentGames}`
       );
 
-      // If setsWon > setsLost, this team won that match => +1 point
+      // If setsWon > setsLost => team gets 1 point
       if (setsWon > setsLost) {
         points++;
       }
 
-      // Add to total set difference and games difference
       setDiff += setsWon - setsLost;
       gamesDiff += teamGames - opponentGames;
     }
 
-    // After processing all matches for this team, push to leaderboard
     leaderboard.push({
       teamId: team.id,
       teamName: team.name,
