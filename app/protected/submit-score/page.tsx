@@ -1,5 +1,9 @@
-import { createClient } from "@/utils/supabase/server";
+// app/protected/submit-score/page.tsx
 
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+
+// Define interfaces for our joined match data
 interface JoinedTeamData {
   id: string;
   name: string;
@@ -15,16 +19,19 @@ interface JoinedMatchData {
 export default async function SubmitScorePage({
   searchParams,
 }: {
-  searchParams: { matchId?: string };
+  // Declare searchParams as a Promise to satisfy the PageProps constraint.
+  searchParams: Promise<{ matchId?: string }>;
 }) {
-  const matchId = searchParams.matchId;
+  // Await the searchParams to get the resolved object.
+  const resolvedSearchParams = await searchParams;
+  const matchId = resolvedSearchParams.matchId;
   if (!matchId) {
     return <p>No match selected.</p>;
   }
 
   const supabase = await createClient();
 
-  // Fetch the match with joined team names
+  // 1. Fetch the match with joined team names.
   const { data: rawMatchData, error: matchError } = await supabase
     .from("matches")
     .select(`
@@ -44,9 +51,10 @@ export default async function SubmitScorePage({
     return <p>Match not found.</p>;
   }
 
+  // Cast the raw data to our expected interface.
   const matchData = rawMatchData as unknown as JoinedMatchData;
 
-  // Extract team names
+  // 2. Extract team names (handling if Supabase returns an array or a single object).
   const team1Name = Array.isArray(matchData.team1)
     ? matchData.team1[0]?.name
     : matchData.team1?.name;
@@ -54,7 +62,7 @@ export default async function SubmitScorePage({
     ? matchData.team2[0]?.name
     : matchData.team2?.name;
 
-  // Import the client component (which is in its own file)
+  // 3. Import the client component dynamically.
   const SubmitScoreClient = (await import("./SubmitScoreClient")).default;
 
   return (
