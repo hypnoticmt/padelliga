@@ -89,6 +89,7 @@ export default async function PrivatePage() {
       .select("*")
       .eq("team_id", teamId)
       .neq("user_id", user.id);
+      console.log("Teammates query result:", teammatesData, teammatesError);
     if (teammatesError) {
       console.error("Error fetching teammates:", teammatesError.message);
     }

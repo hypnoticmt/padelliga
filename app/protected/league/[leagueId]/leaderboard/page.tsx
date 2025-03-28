@@ -25,12 +25,13 @@ export default async function LeaderboardPage({ params, searchParams }: any) {
     redirect("/sign-in");
   }
 
-  const { leagueId } = params;
+  // If your route is /protected/league/[leagueId]/leaderboard, we get leagueId from params
+  const { leagueId } = await params;
 
-  // 1. Fetch teams in the league.
+  // 1. Fetch teams in the league (including captain_id)
   const { data: teams, error: teamsError } = await supabase
     .from("teams")
-    .select("*")
+    .select("*") // includes captain_id
     .eq("league_id", leagueId);
   if (teamsError) {
     console.error("Error fetching teams:", teamsError.message);
@@ -43,11 +44,12 @@ export default async function LeaderboardPage({ params, searchParams }: any) {
 
   // For each team, gather players and compute match statistics.
   for (const team of teamList) {
-    // 2. Fetch players for the team.
+    // 2. Fetch players for the team (include user_id so we can find the captain)
     const { data: players, error: playersError } = await supabase
       .from("players")
-      .select("name, surname")
+      .select("user_id, name, surname") // user_id is needed to find the captain
       .eq("team_id", team.id);
+
     if (playersError) {
       console.error(
         `Error fetching players for team ${team.id}:`,
@@ -56,15 +58,26 @@ export default async function LeaderboardPage({ params, searchParams }: any) {
       continue;
     }
     const teamPlayers = players ?? [];
-    // Sort players by name to ensure a consistent order
-    const sortedPlayers = (teamPlayers as any[]).sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
-    const player1 = sortedPlayers[0]
-      ? `${sortedPlayers[0].name} ${sortedPlayers[0].surname}`
+
+    // If there's a captain, put them at the front
+    if (team.captain_id) {
+      const captainIndex = teamPlayers.findIndex(
+        (p) => p.user_id === team.captain_id
+      );
+      if (captainIndex >= 0) {
+        // remove the captain from that index
+        const [captain] = teamPlayers.splice(captainIndex, 1);
+        // unshift captain to front
+        teamPlayers.unshift(captain);
+      }
+    }
+
+    // Now your first element is the captain (if present)
+    const player1 = teamPlayers[0]
+      ? `${teamPlayers[0].name} ${teamPlayers[0].surname}`
       : "";
-    const player2 = sortedPlayers[1]
-      ? `${sortedPlayers[1].name} ${sortedPlayers[1].surname}`
+    const player2 = teamPlayers[1]
+      ? `${teamPlayers[1].name} ${teamPlayers[1].surname}`
       : "";
 
     // 3. Fetch all matches in which the team played.
@@ -143,6 +156,7 @@ export default async function LeaderboardPage({ params, searchParams }: any) {
       gamesDiff += teamGames - opponentGames;
     }
 
+    // Add final row for the team
     leaderboard.push({
       teamId: team.id,
       teamName: team.name,
