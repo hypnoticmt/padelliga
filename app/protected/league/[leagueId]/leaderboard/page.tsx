@@ -1,18 +1,23 @@
+// app/protected/league/[leagueId]/leaderboard/page.tsx
+
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-export default async function LeaderboardPage({
-  params,
-  searchParams,
-}: {
-  // "params" for dynamic route segments
-  params: { leagueId: string };
-  // "searchParams" is optional, but Next might require it in the signature
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
+interface TeamLeaderboardRow {
+  teamId: string;
+  teamName: string;
+  player1: string;
+  player2: string;
+  points: number;
+  setDifference: number;
+  gamesDifference: number;
+}
+
+// Using "any" for the props is a common workaround until a stricter type can be defined.
+export default async function LeaderboardPage({ params, searchParams }: any) {
   const supabase = await createClient();
 
-  // If you want to enforce auth:
+  // (Optional) Check if the user is logged in.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -27,7 +32,6 @@ export default async function LeaderboardPage({
     .from("teams")
     .select("*")
     .eq("league_id", leagueId);
-
   if (teamsError) {
     console.error("Error fetching teams:", teamsError.message);
     return <p>Error fetching teams.</p>;
@@ -35,15 +39,7 @@ export default async function LeaderboardPage({
   const teamList = teams ?? [];
 
   // Prepare an array for leaderboard rows.
-  const leaderboard: {
-    teamId: string;
-    teamName: string;
-    player1: string;
-    player2: string;
-    points: number;
-    setDifference: number;
-    gamesDifference: number;
-  }[] = [];
+  const leaderboard: TeamLeaderboardRow[] = [];
 
   // For each team, gather players and compute match statistics.
   for (const team of teamList) {
@@ -52,30 +48,40 @@ export default async function LeaderboardPage({
       .from("players")
       .select("name, surname")
       .eq("team_id", team.id);
-
     if (playersError) {
-      console.error(`Error fetching players for team ${team.id}:`, playersError.message);
+      console.error(
+        `Error fetching players for team ${team.id}:`,
+        playersError.message
+      );
       continue;
     }
     const teamPlayers = players ?? [];
-
-    // Sort players by name
-    const sortedPlayers = teamPlayers.sort((a, b) => a.name.localeCompare(b.name));
-    const player1 = sortedPlayers[0] ? `${sortedPlayers[0].name} ${sortedPlayers[0].surname}` : "";
-    const player2 = sortedPlayers[1] ? `${sortedPlayers[1].name} ${sortedPlayers[1].surname}` : "";
+    // Sort players by name to ensure a consistent order
+    const sortedPlayers = (teamPlayers as any[]).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+    const player1 = sortedPlayers[0]
+      ? `${sortedPlayers[0].name} ${sortedPlayers[0].surname}`
+      : "";
+    const player2 = sortedPlayers[1]
+      ? `${sortedPlayers[1].name} ${sortedPlayers[1].surname}`
+      : "";
 
     // 3. Fetch all matches in which the team played.
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
       .select("*")
       .or(`team1_id.eq.${team.id},team2_id.eq.${team.id}`);
-
     if (matchesError) {
-      console.error(`Error fetching matches for team ${team.id}:`, matchesError.message);
+      console.error(
+        `Error fetching matches for team ${team.id}:`,
+        matchesError.message
+      );
       continue;
     }
     const matchList = matches ?? [];
 
+    // Initialize totals for this team across ALL matches
     let points = 0;
     let setDiff = 0;
     let gamesDiff = 0;
@@ -95,13 +101,17 @@ export default async function LeaderboardPage({
         .order("set_number", { ascending: true });
 
       if (setsError) {
-        console.error(`Error fetching sets for match ${match.id}:`, setsError.message);
+        console.error(
+          `Error fetching sets for match ${match.id}:`,
+          setsError.message
+        );
         continue;
       }
       const setList = sets ?? [];
 
-      console.log(`Match: ${match.id}, Team: ${team.id} => Found ${setList.length} sets`);
-
+      console.log(
+        `Match: ${match.id}, Team: ${team.id} => Found ${setList.length} sets`
+      );
       // For each set, see if this team is match.team1_id or match.team2_id
       for (const set of setList) {
         console.log("  Processing set:", set);
@@ -125,11 +135,10 @@ export default async function LeaderboardPage({
         `  => setsWon: ${setsWon}, setsLost: ${setsLost}, teamGames: ${teamGames}, oppGames: ${opponentGames}`
       );
 
-      // If setsWon > setsLost => team gets 1 point
+      // If setsWon > setsLost => team wins that match => +1 point
       if (setsWon > setsLost) {
         points++;
       }
-
       setDiff += setsWon - setsLost;
       gamesDiff += teamGames - opponentGames;
     }
