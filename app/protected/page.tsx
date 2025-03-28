@@ -207,37 +207,40 @@ export default async function PrivatePage() {
 
       {/* Player's Team Section */}
       <section className="border border-foreground/10 rounded-md p-4">
-        <h2 className="text-xl font-semibold mb-2">Your Team</h2>
-        {team ? (
-          <>
-            <p className="text-lg">{team.name}</p>
-            <h3 className="text-lg font-semibold mt-4">Teammates:</h3>
-            {teammates.length > 0 ? (
-              <ul className="list-disc pl-6">
-                {teammates.map((mate) => (
-                  <li key={mate.id}>
-                    {mate.name} {mate.surname}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-foreground/70">
-                You don't have any teammates registered yet.
-              </p>
-            )}
-
-            {/* Display Team Performance */}
-            <div className="mt-4">
-              <h3 className="font-semibold mb-2">Team Performance</h3>
-              <p>Points: {points}</p>
-              <p>Set Difference: {setDiff}</p>
-              <p>Games Difference: {gamesDiff}</p>
-            </div>
-          </>
+  <h2 className="text-xl font-semibold mb-2">Your Team</h2>
+  {team ? (
+    <>
+      <p className="text-lg">{team.name}</p>
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold">Teammates:</h3>
+        {teammates.length > 0 ? (
+          <ul className="list-disc pl-6">
+            {teammates.map((mate) => (
+              <li key={mate.id}>
+                {mate.name} {mate.surname}
+              </li>
+            ))}
+          </ul>
         ) : (
-          <p>You are not assigned to a team yet.</p>
+          <p className="text-sm text-foreground/70">
+            You don't have any teammates registered yet.
+          </p>
         )}
-      </section>
+      </div>
+
+      {/* Move the team performance into its own div */}
+      <div className="mt-4 border-t pt-4">
+        <h3 className="text-lg font-semibold">Team Performance</h3>
+        <p>Points: {points}</p>
+        <p>Set Difference: {setDiff}</p>
+        <p>Games Difference: {gamesDiff}</p>
+      </div>
+    </>
+  ) : (
+    <p>You are not assigned to a team yet.</p>
+  )}
+</section>
+
 
       {/* Upcoming Matches Section */}
       <section className="border border-foreground/10 rounded-md p-4">
