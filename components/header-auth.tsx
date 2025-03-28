@@ -66,7 +66,7 @@ export default async function AuthButton() {
 
         {/* Sign out button */}
         <form action={signOutAction}>
-          <SubmitButton type="submit">
+          <SubmitButton type="submit" variant="default">
             Sign out
           </SubmitButton>
         </form>
@@ -77,12 +77,12 @@ export default async function AuthButton() {
   // If no user is logged in:
   return (
     <div className="flex gap-2">
-      <SubmitButton asChild size="sm" type="submit">
+      <Button asChild size="sm" variant="default">
         <Link href="/sign-in">Sign in</Link>
-      </SubmitButton>
-      <SubmitButton asChild size="sm" type="submit">
+      </Button>
+      <Button asChild size="sm" variant="default">
         <Link href="/sign-up">Sign up</Link>
-      </SubmitButton>
+      </Button>
     </div>
   );
 }
