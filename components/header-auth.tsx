@@ -46,12 +46,18 @@ export default async function AuthButton() {
       <div className="flex items-center gap-4">
         {/* Add a small nav for the new pages */}
         <nav className="flex gap-2">
+          <Link href="/protected/" className="hover:underline">
+            Dashboard
+          </Link>
           <Link href="/protected/create-team" className="hover:underline">
-            Create Team
+            Create a Team
           </Link>
           <Link href="/protected/join-team" className="hover:underline">Join a Team</Link>
           <Link href="/protected/book-match" className="hover:underline">
-            Book Match
+            Book a Match
+          </Link>
+          <Link href="/protected/leaderboards" className="hover:underline">
+            Leaderboards
           </Link>
         </nav>
 
@@ -60,9 +66,9 @@ export default async function AuthButton() {
 
         {/* Sign out button */}
         <form action={signOutAction}>
-          <Button type="submit" variant="outline">
+          <SubmitButton type="submit" variant="default">
             Sign out
-          </Button>
+          </SubmitButton>
         </form>
       </div>
     );
@@ -71,7 +77,7 @@ export default async function AuthButton() {
   // If no user is logged in:
   return (
     <div className="flex gap-2">
-      <Button asChild size="sm" variant="outline">
+      <Button asChild size="sm" variant="default">
         <Link href="/sign-in">Sign in</Link>
       </Button>
       <Button asChild size="sm" variant="default">
