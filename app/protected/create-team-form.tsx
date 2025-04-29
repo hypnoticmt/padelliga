@@ -1,18 +1,27 @@
+// app/protected/create-team-form.tsx
 "use client";
+import { useState, FormEvent } from "react";
 import { SubmitButton } from "@/components/submit-button";
 import { createTeamAction } from "./actions";
-import { useState, FormEvent } from "react";
 
-export default function CreateTeamForm({ leagues }: { leagues: any[] }) {
+export default function CreateTeamForm({
+  leagues,
+  regions,
+}: {
+  leagues: { id: string; name: string }[];
+  regions: { id: string; name: string }[];
+}) {
   const [teamName, setTeamName] = useState("");
   const [leagueId, setLeagueId] = useState("");
+  const [regionId, setRegionId] = useState("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     await createTeamAction(new FormData(e.currentTarget));
-    alert("Team created successfully!");
     setTeamName("");
     setLeagueId("");
+    setRegionId("");
+    alert("Team created successfully!");
   }
 
   return (
@@ -47,10 +56,25 @@ export default function CreateTeamForm({ leagues }: { leagues: any[] }) {
         </select>
       </label>
 
-      <SubmitButton
-        type="submit"
-        className="flex flex-col gap-1"
-      >
+      <label className="flex flex-col gap-1">
+        <span className="text-sm">Region</span>
+        <select
+          name="regionId"
+          value={regionId}
+          onChange={(e) => setRegionId(e.target.value)}
+          required
+          className="border border-foreground/20 p-2 rounded"
+        >
+          <option value="">-- Select Region --</option>
+          {regions.map((region) => (
+            <option key={region.id} value={region.id}>
+              {region.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <SubmitButton type="submit" className="flex flex-col gap-1">
         Create Team
       </SubmitButton>
     </form>

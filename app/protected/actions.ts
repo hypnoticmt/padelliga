@@ -7,82 +7,60 @@ export async function createTeamAction(formData: FormData) {
   const supabase = await createClient()
   const teamName = formData.get("teamName") as string
   const leagueId = formData.get("leagueId") as string
+  const regionId = formData.get("regionId") as string
 
-  // 1. Check auth
+  // 1. Get current user
   const {
     data: { user },
+    error: authError
   } = await supabase.auth.getUser()
-  if (!user) {
+  if (authError || !user) {
     throw new Error("Not authenticated")
   }
 
-  console.log("User ID:", user.id);
-  console.log("Team Name:", teamName, "League ID:", leagueId);
-
-  // 2. Insert a new team and retrieve the inserted record (with the team id)
-  const { data: newTeamData, error: teamError } = await supabase
+  // 2. Create the team
+  const { data: newTeam, error: teamError } = await supabase
     .from("teams")
     .insert({
       name: teamName,
       league_id: leagueId,
+      region_id: regionId,
       captain_id: user.id,
     })
-    .select() // return the inserted row
+    .select()
     .maybeSingle()
 
-  if (teamError) {
-    console.error("Error creating team:", teamError.message)
+  if (teamError || !newTeam) {
+    console.error("Error creating team:", teamError?.message)
     throw new Error("Could not create team")
   }
 
-  console.log("New team data:", newTeamData);
+  // 3. Insert into team_members
+  const { error: tmError } = await supabase
+    .from("team_members")
+    .insert({
+      player_id: user.id,
+      team_id: newTeam.id,
+    })
 
-  // 3. Check if the player record exists
-  const { data: playerData, error: playerSelectError } = await supabase
-    .from("players")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  console.log("Player record before update:", playerData);
-  if (playerSelectError) {
-    console.error("Error fetching player record:", playerSelectError.message);
-  }
-  if (!playerData) {
-    console.error("Player record not found for user:", user.id);
-    throw new Error("Player record not found");
-  }
-
-  // 4. Update the player's record with the new team_id
-  const teamId = newTeamData?.id;
-  if (!teamId) {
-    throw new Error("Team ID not returned");
-  }
-
-  console.log("Updating player record for user:", user.id, "with teamId:", teamId);
-
-  const { data: updatedPlayerData, error: updatePlayerError } = await supabase
-    .from("players")
-    .update({ team_id: teamId })
-    .eq("user_id", user.id);
-
-  console.log("Player update result:", updatedPlayerData);
-  if (updatePlayerError) {
-    console.error("Error updating player's team:", updatePlayerError.message);
-    throw new Error("Could not update player's team");
+  if (tmError) {
+    console.error("Error inserting team_members row:", tmError.message)
+    // we don’t necessarily want to blow up the entire flow here—
+    // but you can throw if you prefer strict consistency
   }
 }
+
 export async function bookMatchAction(formData: FormData) {
-  const supabase = await createClient();
-  const team1Id = formData.get("team1_id") as string;
-  const team2Id = formData.get("team2_id") as string;
-  const matchDate = formData.get("match_date") as string;
+  const supabase = await createClient()
+  const team1Id = formData.get("team1_id") as string
+  const team2Id = formData.get("team2_id") as string
+  const matchDate = formData.get("match_date") as string
 
   if (team1Id === team2Id) {
-    throw new Error("A team cannot play against itself");
+    throw new Error("A team cannot play against itself")
   }
   if (!matchDate) {
-    throw new Error("Match date is required");
+    throw new Error("Match date is required")
   }
 
   const { error } = await supabase.from("matches").insert({
@@ -90,23 +68,21 @@ export async function bookMatchAction(formData: FormData) {
     team2_id: team2Id,
     match_date: matchDate,
     status: "scheduled",
-  });
+  })
 
   if (error) {
-    console.error("Error booking match:", error.message);
-    throw new Error("Could not book match");
+    console.error("Error booking match:", error.message)
+    throw new Error("Could not book match")
   }
 }
 
+export async function createLeagueAction(formData: FormData) {
+  const supabase = await createClient()
+  const leagueName = formData.get("leagueName") as string
 
-  export async function createLeagueAction(formData: FormData) {
-    const supabase = await createClient()
-    const leagueName = formData.get("leagueName") as string
-  
-    // Insert a new league
-    const { error } = await supabase.from("leagues").insert({ name: leagueName })
-    if (error) {
-      console.error("Error creating league:", error.message)
-      throw new Error("Could not create league")
-    }
+  const { error } = await supabase.from("leagues").insert({ name: leagueName })
+  if (error) {
+    console.error("Error creating league:", error.message)
+    throw new Error("Could not create league")
   }
+}
