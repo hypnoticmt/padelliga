@@ -1,56 +1,67 @@
+// app/protected/join-team/actions.ts
 "use server";
-
-import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-
 
 export async function joinTeamAction(formData: FormData) {
-    const supabase = await createClient();
-    const teamId = formData.get("teamId") as string;
-    
-    // Check if teamId was provided
-    if (!teamId) {
-      throw new Error("No team selected");
-    }
-    
-    // Get the current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-    
-    // Optionally, check if a player record exists for this user
-    const { data: player, error: playerError } = await supabase
-      .from("players")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    
-    if (playerError) {
-      console.error("Error fetching player:", playerError.message);
-      throw new Error("Could not fetch player data");
-    }
-    
-    // If the player record doesn't exist, you might want to create one first.
-    if (!player) {
-      throw new Error("Player record not found. Please complete your registration.");
-    }
-    
-    // Update the player's team_id to the selected team
-    const { error: updateError } = await supabase
-      .from("players")
-      .update({ team_id: teamId })
-      .eq("user_id", user.id);
-    
-    if (updateError) {
-      console.error("Error joining team:", updateError.message);
-      throw new Error("Could not join the team");
-    }
-    
-    // Optionally return a success message
-    return { message: "Team joined successfully" };
-  };
+  const supabase = await createClient();
+  const teamId = formData.get("teamId") as string;
+  if (!teamId) throw new Error("No team selected");
+
+  // 1️⃣ Ensure logged in
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // 2️⃣ Lookup the team’s region_id
+  const { data: teamRec, error: tErr } = await supabase
+    .from("teams")
+    .select("region_id")
+    .eq("id", teamId)
+    .maybeSingle();
+
+  if (tErr || !teamRec) {
+    console.error("Error fetching team record:", tErr?.message);
+    throw new Error("Team not found");
+  }
+  const regionId = teamRec.region_id;
+
+  // 3️⃣ Make sure you’re not already in another team in that region
+  const { data: memberRows, error: mErr } = await supabase
+    .from("team_members")
+    .select("team:teams(region_id)")
+    .eq("player_id", user.id);
+
+  if (mErr) {
+    console.error("Error fetching memberships:", mErr.message);
+    throw new Error("Could not verify existing teams");
+  }
+
+  if ((memberRows || []).some(r => r.team.some(t => t.region_id === regionId))) {
+    throw new Error("You already belong to a team in this region");
+  }
+
+  // 4️⃣ Lookup your players.id
+  const { data: playerRow, error: pErr } = await supabase
+    .from("players")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (pErr || !playerRow) {
+    console.error("Error fetching player record:", pErr?.message);
+    throw new Error("Player profile missing");
+  }
+
+  // 5️⃣ Finally insert into the bridge table
+  const { error: tmErr } = await supabase
+    .from("team_members")
+    .insert({ team_id: teamId, player_id: playerRow.id });
+
+  if (tmErr) {
+    console.error("Error joining team:", tmErr.message);
+    throw new Error("Could not join the team");
+  }
+
+  return { message: "Team joined successfully" };
+}

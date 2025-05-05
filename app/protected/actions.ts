@@ -1,77 +1,81 @@
 // app/protected/actions.ts
-"use server"
+"use server";
 
-import { createClient } from "@/utils/supabase/server"
+import { createClient } from "@/utils/supabase/server";
 
 export async function createTeamAction(formData: FormData) {
-  const supabase = await createClient()
-  const teamName = formData.get("teamName") as string
-  const leagueId = formData.get("leagueId") as string
+  const supabase = await createClient();
+  const teamName = formData.get("teamName") as string;
+  const leagueId  = formData.get("leagueId") as string;
+  const regionId  = formData.get("regionId") as string;
 
-  // 1. Check auth
+  // 1️⃣ Ensure logged in
   const {
     data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error("Not authenticated")
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // 1️⃣•5️⃣ Check existing memberships in this region
+  {
+    const { data: memberRows, error: memErr } = await supabase
+      .from("team_members")
+      .select("team:teams(region_id)")
+      .eq("player_id", user.id) as { data: { team: { region_id: string } | null }[] | null, error: any };
+
+    if (memErr) throw memErr;
+    const inSameRegion = (memberRows ?? []).some((r) =>
+      Array.isArray(r.team)
+        ? r.team.some((t) => t.region_id === regionId)
+        : (r.team?.region_id === regionId)
+    );
+    if (inSameRegion) {
+      throw new Error("You are already in a team in that region");
+    }
   }
 
-  console.log("User ID:", user.id);
-  console.log("Team Name:", teamName, "League ID:", leagueId);
-
-  // 2. Insert a new team and retrieve the inserted record (with the team id)
-  const { data: newTeamData, error: teamError } = await supabase
+  // 2️⃣ Create the new team
+  const { data: newTeam, error: teamErr } = await supabase
     .from("teams")
     .insert({
-      name: teamName,
-      league_id: leagueId,
+      name:       teamName,
+      league_id:  leagueId,
+      region_id:  regionId,
       captain_id: user.id,
     })
-    .select() // return the inserted row
-    .maybeSingle()
-
-  if (teamError) {
-    console.error("Error creating team:", teamError.message)
-    throw new Error("Could not create team")
+    .select("id")
+    .maybeSingle();
+  if (teamErr || !newTeam) {
+    console.error(teamErr);
+    throw new Error("Could not create team");
   }
 
-  console.log("New team data:", newTeamData);
-
-  // 3. Check if the player record exists
-  const { data: playerData, error: playerSelectError } = await supabase
+  // 3️⃣ Look up this player’s PK
+  const { data: playerRow, error: plyErr } = await supabase
     .from("players")
-    .select("*")
+    .select("id")
     .eq("user_id", user.id)
     .maybeSingle();
-
-  console.log("Player record before update:", playerData);
-  if (playerSelectError) {
-    console.error("Error fetching player record:", playerSelectError.message);
-  }
-  if (!playerData) {
-    console.error("Player record not found for user:", user.id);
+  if (plyErr || !playerRow) {
+    console.error(plyErr);
     throw new Error("Player record not found");
   }
 
-  // 4. Update the player's record with the new team_id
-  const teamId = newTeamData?.id;
-  if (!teamId) {
-    throw new Error("Team ID not returned");
-  }
-
-  console.log("Updating player record for user:", user.id, "with teamId:", teamId);
-
-  const { data: updatedPlayerData, error: updatePlayerError } = await supabase
-    .from("players")
-    .update({ team_id: teamId })
-    .eq("user_id", user.id);
-
-  console.log("Player update result:", updatedPlayerData);
-  if (updatePlayerError) {
-    console.error("Error updating player's team:", updatePlayerError.message);
-    throw new Error("Could not update player's team");
+  // 4️⃣ Insert into the bridge table
+  const { error: tmErr } = await supabase
+    .from("team_members")
+    .insert({
+      team_id:   newTeam.id,
+      player_id: playerRow.id,
+    });
+  if (tmErr) {
+    console.error(tmErr);
+    throw new Error("Could not add you to your new team");
   }
 }
+
+
+  // success
+
 export async function bookMatchAction(formData: FormData) {
   const supabase = await createClient();
   const team1Id = formData.get("team1_id") as string;
