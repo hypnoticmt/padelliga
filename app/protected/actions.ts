@@ -12,11 +12,11 @@ export async function createTeamAction(formData: FormData) {
   const regionId     = formData.get("regionId")      as string;
   const rawCodes     = formData.get("teammateCodes") as string | null;
 
-  // 1️⃣ Ensure signed in
+  
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  // 2️⃣ Global unique team-name check
+  
   const { data: already, error: existErr } = await supabase
     .from("teams")
     .select("id")
@@ -30,7 +30,7 @@ export async function createTeamAction(formData: FormData) {
     throw new Error(`Team name “${teamName}” is already taken. Please choose another name.`);
   }
 
-  // 2️⃣•5️⃣ Prevent more than one teammate code
+  
   if (rawCodes) {
     const codes = rawCodes
       .split(",")
@@ -41,7 +41,7 @@ export async function createTeamAction(formData: FormData) {
     }
   }
 
-  // 3️⃣ Create the team
+  
   const { data: newTeam, error: teamErr } = await supabase
     .from("teams")
     .insert({
@@ -53,7 +53,7 @@ export async function createTeamAction(formData: FormData) {
     .select("id")
     .maybeSingle();
   if (teamErr) {
-    // catch any unique-violation that slipped through
+    
     if (teamErr.code === "23505") {
       throw new Error(`Team name “${teamName}” is already taken. Please choose another name.`);
     }
@@ -64,7 +64,7 @@ export async function createTeamAction(formData: FormData) {
     throw new Error("Could not create team");
   }
 
-  // 4️⃣ Lookup your player record
+  
   const { data: you, error: youErr } = await supabase
     .from("players")
     .select("id")
@@ -75,7 +75,7 @@ export async function createTeamAction(formData: FormData) {
     throw new Error("Player profile not found");
   }
 
-  // 5️⃣ Add yourself as captain in team_members
+  
   const { error: capErr } = await supabase
     .from("team_members")
     .insert({ team_id: newTeam.id, player_id: you.id });
@@ -84,7 +84,7 @@ export async function createTeamAction(formData: FormData) {
     throw new Error("Could not add captain to team");
   }
 
-  // 6️⃣ Invite your single teammate (if provided)
+  
   if (rawCodes) {
     const code = rawCodes.trim();
     const { data: p, error: pErr } = await supabase
@@ -112,11 +112,11 @@ export async function removeTeammateAction(formData: FormData) {
   const teamId   = formData.get("teamId")   as string;
   const playerId = formData.get("playerId") as string;
 
-  // 1️⃣ Auth & fetch your user
+  
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  // 2️⃣ Ensure you’re the captain
+  
   const { data: team } = await supabase
     .from("teams")
     .select("captain_id")
@@ -124,19 +124,19 @@ export async function removeTeammateAction(formData: FormData) {
     .maybeSingle();
 
   if (team?.captain_id !== user.id) {
-    // ✋ redirect back with error
+    
     return redirect(
       `/protected?error=${encodeURIComponent("Only the captain can remove teammates")}`
     );
   }
 
-  // 3️⃣ Remove the teammate
+  
   await supabase
     .from("team_members")
     .delete()
     .eq("team_id", teamId)
     .eq("player_id", playerId);
 
-  // 4️⃣ Back to dashboard
+  
   return redirect("/protected");
 }
