@@ -1,17 +1,20 @@
+// app/components/AuthButton.tsx
 import { signOutAction } from "@/app/actions";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { createClient } from "@/utils/supabase/server";
 import { SubmitButton } from "./submit-button";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function AuthButton() {
   const supabase = await createClient();
 
+  // 1️⃣ get the auth user
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // if env is mis-configured, still show disabled links
   if (!hasEnvVars) {
     return (
       <div className="flex gap-4 items-center">
@@ -39,12 +42,18 @@ export default async function AuthButton() {
     );
   }
 
-  const userName = user?.user_metadata?.name || user?.email;
-
+  // 2️⃣ if logged in, fetch your “players” row for the up-to-date name
   if (user) {
+    const { data: player } = await supabase
+      .from("players")
+      .select("name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const displayName = player?.name || user.user_metadata?.name || user.email;
+
     return (
       <div className="flex items-center gap-4">
-        {/* Add a small nav for the new pages */}
         <nav className="flex gap-2">
           <Link href="/protected/" className="hover:underline">
             Dashboard
@@ -52,7 +61,9 @@ export default async function AuthButton() {
           <Link href="/protected/create-team" className="hover:underline">
             Create a Team
           </Link>
-          <Link href="/protected/join-team" className="hover:underline">Join a Team</Link>
+          <Link href="/protected/join-team" className="hover:underline">
+            Join a Team
+          </Link>
           <Link href="/protected/leaderboards" className="hover:underline">
             Leaderboards
           </Link>
@@ -61,10 +72,8 @@ export default async function AuthButton() {
           </Link>
         </nav>
 
-        {/* Greet the user */}
-        <span>Hey, {userName}!</span>
+        <span>Hey, {displayName}!</span>
 
-        {/* Sign out button */}
         <form action={signOutAction}>
           <SubmitButton type="submit" variant="default">
             Sign out
@@ -74,7 +83,7 @@ export default async function AuthButton() {
     );
   }
 
-  // If no user is logged in:
+  // 3️⃣ otherwise, offer Sign in / Sign up
   return (
     <div className="flex gap-2">
       <Button asChild size="sm" variant="default">

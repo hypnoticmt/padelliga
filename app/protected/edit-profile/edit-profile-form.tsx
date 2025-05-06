@@ -1,9 +1,5 @@
-// app/protected/edit-profile/edit-profile-form.tsx
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { SubmitButton } from "@/components/submit-button";
 import { updateProfileAction } from "./actions";
 
 export default function EditProfileForm({
@@ -11,22 +7,9 @@ export default function EditProfileForm({
 }: {
   initial: { name: string; surname: string; phone?: string };
 }) {
-  const [name, setName] = useState(initial.name);
-  const [surname, setSurname] = useState(initial.surname);
-  const [phone, setPhone] = useState(initial.phone || "");
-  const router = useRouter();
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // 1️⃣ Call the server action to update the profile
-    await updateProfileAction(new FormData(e.currentTarget));
-    // 2️⃣ After it succeeds, navigate back with updated=true
-    router.push("/protected/edit-profile?updated=true");
-  };
-
   return (
     <form
-      onSubmit={handleSubmit}
+      action={updateProfileAction}
       className="max-w-md mx-auto flex flex-col gap-4"
     >
       <label className="flex flex-col gap-1">
@@ -34,8 +17,7 @@ export default function EditProfileForm({
         <input
           name="name"
           type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          defaultValue={initial.name}
           required
           className="border p-2 rounded"
         />
@@ -46,8 +28,7 @@ export default function EditProfileForm({
         <input
           name="surname"
           type="text"
-          value={surname}
-          onChange={(e) => setSurname(e.target.value)}
+          defaultValue={initial.surname}
           required
           className="border p-2 rounded"
         />
@@ -58,15 +39,17 @@ export default function EditProfileForm({
         <input
           name="phone"
           type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          defaultValue={initial.phone ?? ""}
           className="border p-2 rounded"
         />
       </label>
 
-      <SubmitButton type="submit" className="mt-4">
+      <button
+        type="submit"
+        className="mt-4 rounded bg-white text-black px-4 py-2"
+      >
         Save Changes
-      </SubmitButton>
+      </button>
     </form>
   );
 }

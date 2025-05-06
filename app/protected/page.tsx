@@ -15,16 +15,16 @@ interface PlayerRow {
 interface TeamRow {
   id: number;
   name: string;
-  league_id: number; // Added league_id property
+  league_id: number;
   region_id: number;
   captain_id: number;
 }
 interface JoinedTeam {
   id: number;
-  name: string; // Added name property
+  name: string;
 }
 interface JoinedMatch {
-  id: number; // Added id property
+  id: number;
   match_date: string;
   team1: JoinedTeam | null;
   team2: JoinedTeam | null;
@@ -37,30 +37,34 @@ interface TeamLeaderboardRow {
   gamesDiff: number;
 }
 
-export default async function PrivatePage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
-}) {
+interface PrivatePageProps {
+  searchParams: {
+    error?: string;
+  };
+}
+
+export default async function PrivatePage({ searchParams }: PrivatePageProps) {
   const supabase = await createClient();
+
+  // 0️⃣ Read any ?error=… query-param (no await!)
+  const { error: queryErrorMessage } = await searchParams;
+
 
   // 1️⃣ Auth
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/sign-in");
-  const userName = user.user_metadata?.name || user.email;
-
-  // pull out any `?error=…`
-  const errorMessage = searchParams.error;
-
-  // 2️⃣ Fetch your player row (with code)
+  
+  // 2️⃣ Fetch your player row
   const { data: you } = await supabase
     .from("players")
     .select("id, user_id, name, surname, player_code")
     .eq("user_id", user.id)
     .maybeSingle();
   if (!you) return <p className="p-5">Please complete your profile first.</p>;
+
+  const userName = you.name;
 
   // 3️⃣ Find your team membership
   const { data: membership } = await supabase
@@ -92,7 +96,7 @@ export default async function PrivatePage({
     teammates = all.filter((p) => p.user_id !== user.id);
   }
 
-  // 6️⃣ Helper for upcoming‐match joins
+  // 6️⃣ Helper to unwrap joined teams in matches
   const extractTeam = (v: any): JoinedTeam | null => {
     if (!v) return null;
     return Array.isArray(v) ? v[0] : v;
@@ -120,15 +124,20 @@ export default async function PrivatePage({
     }));
   }
 
-  // 8️⃣ Compute team performance just for your team
-  let ownPoints = 0, ownSetDiff = 0, ownGamesDiff = 0;
+  // 8️⃣ Compute your team’s performance
+  let ownPoints = 0,
+    ownSetDiff = 0,
+    ownGamesDiff = 0;
   if (teamId) {
     const { data: allM } = await supabase
       .from("matches")
       .select("*")
       .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`);
     for (const m of allM ?? []) {
-      let w = 0, l = 0, tg = 0, og = 0;
+      let w = 0,
+        l = 0,
+        tg = 0,
+        og = 0;
       const { data: sets } = await supabase
         .from("match_sets")
         .select("*")
@@ -147,22 +156,26 @@ export default async function PrivatePage({
     }
   }
 
-  // 9️⃣ Build the _league_ leaderboard
+  // 9️⃣ Build the league leaderboard
   let leaderboard: TeamLeaderboardRow[] = [];
   if (team?.league_id) {
     const { data: teamsInLeague } = await supabase
       .from("teams")
       .select("id, name")
       .eq("league_id", team.league_id);
-
     for (const t of teamsInLeague ?? []) {
-      let pts = 0, sd = 0, gd = 0;
+      let pts = 0,
+        sd = 0,
+        gd = 0;
       const { data: matches } = await supabase
         .from("matches")
         .select("*")
         .or(`team1_id.eq.${t.id},team2_id.eq.${t.id}`);
       for (const m of matches ?? []) {
-        let w = 0, l = 0, tg = 0, og = 0;
+        let w = 0,
+          l = 0,
+          tg = 0,
+          og = 0;
         const { data: sets } = await supabase
           .from("match_sets")
           .select("*")
@@ -187,7 +200,6 @@ export default async function PrivatePage({
         gamesDiff: gd,
       });
     }
-
     leaderboard.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.setDiff !== a.setDiff) return b.setDiff - a.setDiff;
@@ -199,10 +211,10 @@ export default async function PrivatePage({
     <div className="p-5 flex flex-col gap-8">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* ← NEW: global error banner */}
-      {errorMessage && (
+      {/* 🚨 Show remove‐teammate errors */}
+      {queryErrorMessage && (
         <div className="bg-red-600 text-white p-3 rounded">
-          {decodeURIComponent(errorMessage)}
+          {queryErrorMessage ? decodeURIComponent(queryErrorMessage) : ""}
         </div>
       )}
 
