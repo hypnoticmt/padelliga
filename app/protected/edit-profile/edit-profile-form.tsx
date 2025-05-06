@@ -1,21 +1,34 @@
+// app/protected/edit-profile/edit-profile-form.tsx
 "use client";
 
 import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/submit-button";
 import { updateProfileAction } from "./actions";
 
-export default function EditProfileForm({ initial }: { initial: { name: string; surname: string; phone?: string } }) {
+export default function EditProfileForm({
+  initial,
+}: {
+  initial: { name: string; surname: string; phone?: string };
+}) {
   const [name, setName] = useState(initial.name);
   const [surname, setSurname] = useState(initial.surname);
   const [phone, setPhone] = useState(initial.phone || "");
+  const router = useRouter();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // 1️⃣ Call the server action to update the profile
     await updateProfileAction(new FormData(e.currentTarget));
+    // 2️⃣ After it succeeds, navigate back with updated=true
+    router.push("/protected/edit-profile?updated=true");
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto flex flex-col gap-4">
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-md mx-auto flex flex-col gap-4"
+    >
       <label className="flex flex-col gap-1">
         <span className="text-sm font-medium">First Name</span>
         <input

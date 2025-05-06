@@ -10,7 +10,7 @@ export default async function EditProfilePage({
 }) {
   const supabase = await createClient();
 
-  // ensure user is signed in
+  // 1️⃣ Ensure user is signed in
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -18,7 +18,7 @@ export default async function EditProfilePage({
     redirect("/sign-in");
   }
 
-  // fetch existing profile
+  // 2️⃣ Fetch existing profile
   const { data: profile, error } = await supabase
     .from("players")
     .select("name, surname, phone")
@@ -29,17 +29,22 @@ export default async function EditProfilePage({
     console.error("Error loading profile:", error.message);
     redirect("/protected");
   }
+
   if (!profile) {
+    // if no profile found, redirect to dashboard
     redirect("/protected");
   }
 
+  const justUpdated = searchParams.updated === "true";
+
   return (
-    <div className="p-5">
+    <div className="p-5 space-y-6">
       <h1 className="text-2xl font-bold mb-4">Edit Profile</h1>
 
-      {searchParams.updated === "1" && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-200 text-green-800 rounded">
-          Your profile was updated successfully!
+      {/* 3️⃣ Success banner when ?updated=true */}
+      {justUpdated && (
+        <div className="bg-green-600 text-white p-3 rounded">
+          Profile updated successfully!
         </div>
       )}
 
