@@ -5,7 +5,6 @@ import { createClient } from "@/utils/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
 import { addTeammateByCode } from "./add-teammate/actions";
 import { removeTeammateAction } from "./actions";
-import { ParsedUrlQuery } from "querystring";
 
 interface PlayerRow {
   id: number;
@@ -37,23 +36,22 @@ interface TeamLeaderboardRow {
 }
 
 export default async function PrivatePage({
+  // Next.js now provides searchParams as a Promise
   searchParams,
 }: {
-  searchParams: ParsedUrlQuery;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const supabase = await createClient();
 
-  // 0️⃣ read any ?error=… from the URL
-  const rawError = Array.isArray(searchParams.error)
-    ? searchParams.error.join(", ")
-    : searchParams.error;
+  // 0️⃣ Await and read any ?error=… param
+  const { error: rawError } = await searchParams;
   const queryErrorMessage = rawError ? decodeURIComponent(rawError) : null;
 
   // 1️⃣ Auth
-  const auth = await supabase.auth.getUser();
-  const user = auth.data?.user;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    // if auth.error you could log it here: console.error(auth.error)
     redirect("/sign-in");
   }
   const userName = user.user_metadata?.name || user.email!;
@@ -257,16 +255,8 @@ export default async function PrivatePage({
                         action={removeTeammateAction}
                         className="inline ml-2"
                       >
-                        <input
-                          type="hidden"
-                          name="teamId"
-                          value={team.id}
-                        />
-                        <input
-                          type="hidden"
-                          name="playerId"
-                          value={t.id}
-                        />
+                        <input type="hidden" name="teamId" value={team.id} />
+                        <input type="hidden" name="playerId" value={t.id} />
                         <button className="text-red-500">&times;</button>
                       </form>
                     </li>
