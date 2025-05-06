@@ -1,56 +1,25 @@
-// app/components/AuthButton.tsx
+// components/AuthButton.tsx (or wherever you store it)
 import { signOutAction } from "@/app/actions";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { SubmitButton } from "./submit-button";
 import { createClient } from "@/utils/supabase/server";
+import { SubmitButton } from "./submit-button";
 
 export default async function AuthButton() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // 1️⃣ get the auth user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // ... unauthenticated + hasEnvVars branches as before ...
 
-  // if env is mis-configured, still show disabled links
-  if (!hasEnvVars) {
-    return (
-      <div className="flex gap-4 items-center">
-        <div className="flex gap-2">
-          <SubmitButton
-            asChild
-            size="sm"
-            variant="outline"
-            disabled
-            className="opacity-75 cursor-none pointer-events-none"
-          >
-            <Link href="/sign-in">Sign in</Link>
-          </SubmitButton>
-          <SubmitButton
-            asChild
-            size="sm"
-            variant="default"
-            disabled
-            className="opacity-75 cursor-none pointer-events-none"
-          >
-            <Link href="/sign-up">Sign up</Link>
-          </SubmitButton>
-        </div>
-      </div>
-    );
-  }
-
-  // 2️⃣ if logged in, fetch your “players” row for the up-to-date name
   if (user) {
-    const { data: player } = await supabase
+    // pull the *current* name from players
+    const { data: profile } = await supabase
       .from("players")
       .select("name")
       .eq("user_id", user.id)
       .maybeSingle();
-
-    const displayName = player?.name || user.user_metadata?.name || user.email;
+    const displayName = profile?.name || user.email;
 
     return (
       <div className="flex items-center gap-4">

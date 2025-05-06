@@ -5,12 +5,14 @@ import { createClient } from "@/utils/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
 import { addTeammateByCode } from "./add-teammate/actions";
 import { removeTeammateAction } from "./actions";
+import { ParsedUrlQuery } from "querystring";
 
 interface PlayerRow {
   id: number;
   user_id: string;
   name: string;
   surname: string;
+  player_code?: string;
 }
 interface TeamRow {
   id: number;
@@ -19,10 +21,7 @@ interface TeamRow {
   region_id: number;
   captain_id: number;
 }
-interface JoinedTeam {
-  id: number;
-  name: string;
-}
+interface JoinedTeam { id: number; name: string }
 interface JoinedMatch {
   id: number;
   match_date: string;
@@ -37,36 +36,46 @@ interface TeamLeaderboardRow {
   gamesDiff: number;
 }
 
-interface PrivatePageProps {
-  searchParams: {
-    error?: string;
-  };
-}
-
-export default async function PrivatePage({ searchParams }: any) {
+export default async function PrivatePage({
+  searchParams,
+}: {
+  searchParams: ParsedUrlQuery;
+}) {
   const supabase = await createClient();
 
-  // 0️⃣ Read any ?error=… query-param (no await!)
-  const { error: queryErrorMessage } = searchParams?.error;
-
+  // 0️⃣ read any ?error=… from the URL
+  const rawError = Array.isArray(searchParams.error)
+    ? searchParams.error.join(", ")
+    : searchParams.error;
+  const queryErrorMessage = rawError ? decodeURIComponent(rawError) : null;
 
   // 1️⃣ Auth
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
-  
-  // 2️⃣ Fetch your player row
+  const auth = await supabase.auth.getUser();
+  const user = auth.data?.user;
+  if (!user) {
+    // if auth.error you could log it here: console.error(auth.error)
+    redirect("/sign-in");
+  }
+  const userName = user.user_metadata?.name || user.email!;
+
+  // 2️⃣ Fetch this player's record
   const { data: you } = await supabase
     .from("players")
     .select("id, user_id, name, surname, player_code")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (!you) return <p className="p-5">Please complete your profile first.</p>;
+  if (!you) {
+    return (
+      <div className="p-5">
+        <p className="text-lg">Hey, {userName}!</p>
+        <p className="text-sm text-gray-500">
+          Please complete your player profile first.
+        </p>
+      </div>
+    );
+  }
 
-  const userName = you.name;
-
-  // 3️⃣ Find your team membership
+  // 3️⃣ Find your team via the bridge
   const { data: membership } = await supabase
     .from("team_members")
     .select("team_id")
@@ -85,7 +94,7 @@ export default async function PrivatePage({ searchParams }: any) {
     team = t ?? null;
   }
 
-  // 5️⃣ Load teammates
+  // 5️⃣ Teammates
   let teammates: PlayerRow[] = [];
   if (teamId) {
     const { data: rows } = await supabase
@@ -96,7 +105,7 @@ export default async function PrivatePage({ searchParams }: any) {
     teammates = all.filter((p) => p.user_id !== user.id);
   }
 
-  // 6️⃣ Helper to unwrap joined teams in matches
+  // 6️⃣ Upcoming matches helper
   const extractTeam = (v: any): JoinedTeam | null => {
     if (!v) return null;
     return Array.isArray(v) ? v[0] : v;
@@ -124,7 +133,7 @@ export default async function PrivatePage({ searchParams }: any) {
     }));
   }
 
-  // 8️⃣ Compute your team’s performance
+  // 8️⃣ Compute your team’s own performance
   let ownPoints = 0,
     ownSetDiff = 0,
     ownGamesDiff = 0;
@@ -156,13 +165,14 @@ export default async function PrivatePage({ searchParams }: any) {
     }
   }
 
-  // 9️⃣ Build the league leaderboard
+  // 9️⃣ Build the *league* leaderboard
   let leaderboard: TeamLeaderboardRow[] = [];
   if (team?.league_id) {
     const { data: teamsInLeague } = await supabase
       .from("teams")
       .select("id, name")
       .eq("league_id", team.league_id);
+
     for (const t of teamsInLeague ?? []) {
       let pts = 0,
         sd = 0,
@@ -183,7 +193,8 @@ export default async function PrivatePage({ searchParams }: any) {
           .order("set_number", { ascending: true });
         for (const s of sets ?? []) {
           const is1 = m.team1_id === t.id;
-          if ((is1 && s.set_winner === 1) || (!is1 && s.set_winner === 2)) w++;
+          if ((is1 && s.set_winner === 1) || (!is1 && s.set_winner === 2))
+            w++;
           else l++;
           tg += is1 ? s.team1_games : s.team2_games;
           og += is1 ? s.team2_games : s.team1_games;
@@ -200,6 +211,7 @@ export default async function PrivatePage({ searchParams }: any) {
         gamesDiff: gd,
       });
     }
+
     leaderboard.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.setDiff !== a.setDiff) return b.setDiff - a.setDiff;
@@ -211,22 +223,22 @@ export default async function PrivatePage({ searchParams }: any) {
     <div className="p-5 flex flex-col gap-8">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* 🚨 Show remove‐teammate errors */}
+      {/* 🚨 global error banner */}
       {queryErrorMessage && (
         <div className="bg-red-600 text-white p-3 rounded">
-          {queryErrorMessage ? decodeURIComponent(queryErrorMessage) : ""}
+          {queryErrorMessage}
         </div>
       )}
 
       <p className="text-lg">Welcome, {userName}!</p>
 
-      {/* Your Player Code */}
+      {/* 🆔 Your Player Code */}
       <div className="border rounded p-4">
         <strong>Your Player Code:</strong>{" "}
         <code className="text-xl">{you.player_code ?? "—"}</code>
       </div>
 
-      {/* Your Team */}
+      {/* 👥 Your Team */}
       <section className="border rounded p-4">
         <h2 className="text-xl font-semibold mb-2">Your Team</h2>
         {team ? (
@@ -241,9 +253,20 @@ export default async function PrivatePage({ searchParams }: any) {
                   {teammates.map((t) => (
                     <li key={t.id}>
                       {t.name} {t.surname}{" "}
-                      <form action={removeTeammateAction} className="inline ml-2">
-                        <input type="hidden" name="teamId" value={team.id} />
-                        <input type="hidden" name="playerId" value={t.id} />
+                      <form
+                        action={removeTeammateAction}
+                        className="inline ml-2"
+                      >
+                        <input
+                          type="hidden"
+                          name="teamId"
+                          value={team.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="playerId"
+                          value={t.id}
+                        />
                         <button className="text-red-500">&times;</button>
                       </form>
                     </li>
@@ -254,7 +277,7 @@ export default async function PrivatePage({ searchParams }: any) {
               )}
             </div>
 
-            {/* Add-by-code only if no teammate */}
+            {/* Add by code (only if you have 0 teammates) */}
             {teammates.length === 0 && (
               <form
                 action={addTeammateByCode}
@@ -270,7 +293,7 @@ export default async function PrivatePage({ searchParams }: any) {
               </form>
             )}
 
-            {/* Your Team’s Performance */}
+            {/* Your Performance */}
             <div className="mt-4 border-t pt-4">
               <h3 className="font-medium">Your Performance</h3>
               <p>Points: {ownPoints}</p>
@@ -313,7 +336,7 @@ export default async function PrivatePage({ searchParams }: any) {
         )}
       </section>
 
-      {/* Upcoming Matches */}
+      {/* 📅 Upcoming Matches */}
       <section className="border rounded p-4">
         <h2 className="text-xl font-semibold mb-2">Upcoming Matches</h2>
         {upcomingMatches.length > 0 ? (
