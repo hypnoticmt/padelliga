@@ -3,38 +3,45 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
-import { addTeammateByCode } from "./add-teammate/actions";  // ← NEW
+import { addTeammateByCode } from "./add-teammate/actions";
+import { removeTeammateAction } from "./actions";
 
 interface PlayerRow {
-  id: string;
+  id: number;
   user_id: string;
   name: string;
   surname: string;
-  phone?: string;
-  player_code?: string;        // ← include player_code
 }
-
 interface TeamRow {
-  id: string;
+  id: number;
   name: string;
-  league_id?: string;
-  region_id?: string;
-  captain_id?: string;
+  league_id: number; // Added league_id property
+  region_id: number;
+  captain_id: number;
 }
-
 interface JoinedTeam {
-  id: string;
-  name: string;
+  id: number;
+  name: string; // Added name property
 }
-
 interface JoinedMatch {
-  id: string;
+  id: number; // Added id property
   match_date: string;
   team1: JoinedTeam | null;
   team2: JoinedTeam | null;
 }
+interface TeamLeaderboardRow {
+  teamId: number;
+  teamName: string;
+  points: number;
+  setDiff: number;
+  gamesDiff: number;
+}
 
-export default async function PrivatePage() {
+export default async function PrivatePage({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
   const supabase = await createClient();
 
   // 1️⃣ Auth
@@ -44,25 +51,18 @@ export default async function PrivatePage() {
   if (!user) redirect("/sign-in");
   const userName = user.user_metadata?.name || user.email;
 
-  // 2️⃣ Fetch *your* player row (including your code)
-  const { data: you, error: youErr } = await supabase
+  // pull out any `?error=…`
+  const errorMessage = searchParams.error;
+
+  // 2️⃣ Fetch your player row (with code)
+  const { data: you } = await supabase
     .from("players")
     .select("id, user_id, name, surname, player_code")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (youErr) console.error(youErr);
-  if (!you) {
-    return (
-      <div className="p-5">
-        <p className="text-lg">Welcome, {userName}!</p>
-        <p className="text-sm text-gray-500">
-          Please complete your player profile first.
-        </p>
-      </div>
-    );
-  }
+  if (!you) return <p className="p-5">Please complete your profile first.</p>;
 
-  // 3️⃣ Find *your* team via the bridge table
+  // 3️⃣ Find your team membership
   const { data: membership } = await supabase
     .from("team_members")
     .select("team_id")
@@ -70,7 +70,7 @@ export default async function PrivatePage() {
     .maybeSingle();
   const teamId = membership?.team_id;
 
-  // 4️⃣ Load that team’s info
+  // 4️⃣ Load team info
   let team: TeamRow | null = null;
   if (teamId) {
     const { data: t } = await supabase
@@ -78,10 +78,10 @@ export default async function PrivatePage() {
       .select("id, name, league_id, region_id, captain_id")
       .eq("id", teamId)
       .maybeSingle();
-    team = t;
+    team = t ?? null;
   }
 
-  // 5️⃣ Load *all* teammates via join
+  // 5️⃣ Load teammates
   let teammates: PlayerRow[] = [];
   if (teamId) {
     const { data: rows } = await supabase
@@ -92,13 +92,13 @@ export default async function PrivatePage() {
     teammates = all.filter((p) => p.user_id !== user.id);
   }
 
-  // 6️⃣ Helper for matches …
+  // 6️⃣ Helper for upcoming‐match joins
   const extractTeam = (v: any): JoinedTeam | null => {
     if (!v) return null;
     return Array.isArray(v) ? v[0] : v;
   };
 
-  // 7️⃣ Upcoming matches …
+  // 7️⃣ Upcoming matches
   const now = new Date().toISOString();
   let upcomingMatches: JoinedMatch[] = [];
   if (teamId) {
@@ -120,20 +120,15 @@ export default async function PrivatePage() {
     }));
   }
 
-  // 8️⃣ Compute performance (same logic you already have)…
-  let points = 0,
-    setDiff = 0,
-    gamesDiff = 0;
+  // 8️⃣ Compute team performance just for your team
+  let ownPoints = 0, ownSetDiff = 0, ownGamesDiff = 0;
   if (teamId) {
     const { data: allM } = await supabase
       .from("matches")
       .select("*")
       .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`);
     for (const m of allM ?? []) {
-      let won = 0,
-        lost = 0,
-        tg = 0,
-        og = 0;
+      let w = 0, l = 0, tg = 0, og = 0;
       const { data: sets } = await supabase
         .from("match_sets")
         .select("*")
@@ -141,26 +136,79 @@ export default async function PrivatePage() {
         .order("set_number", { ascending: true });
       for (const s of sets ?? []) {
         const is1 = m.team1_id === teamId;
-        if ((is1 && s.set_winner === 1) || (!is1 && s.set_winner === 2)) {
-          won++;
-        } else {
-          lost++;
-        }
+        if ((is1 && s.set_winner === 1) || (!is1 && s.set_winner === 2)) w++;
+        else l++;
         tg += is1 ? s.team1_games : s.team2_games;
         og += is1 ? s.team2_games : s.team1_games;
       }
-      if (won > lost) points++;
-      setDiff += won - lost;
-      gamesDiff += tg - og;
+      if (w > l) ownPoints++;
+      ownSetDiff += w - l;
+      ownGamesDiff += tg - og;
     }
+  }
+
+  // 9️⃣ Build the _league_ leaderboard
+  let leaderboard: TeamLeaderboardRow[] = [];
+  if (team?.league_id) {
+    const { data: teamsInLeague } = await supabase
+      .from("teams")
+      .select("id, name")
+      .eq("league_id", team.league_id);
+
+    for (const t of teamsInLeague ?? []) {
+      let pts = 0, sd = 0, gd = 0;
+      const { data: matches } = await supabase
+        .from("matches")
+        .select("*")
+        .or(`team1_id.eq.${t.id},team2_id.eq.${t.id}`);
+      for (const m of matches ?? []) {
+        let w = 0, l = 0, tg = 0, og = 0;
+        const { data: sets } = await supabase
+          .from("match_sets")
+          .select("*")
+          .eq("match_id", m.id)
+          .order("set_number", { ascending: true });
+        for (const s of sets ?? []) {
+          const is1 = m.team1_id === t.id;
+          if ((is1 && s.set_winner === 1) || (!is1 && s.set_winner === 2)) w++;
+          else l++;
+          tg += is1 ? s.team1_games : s.team2_games;
+          og += is1 ? s.team2_games : s.team1_games;
+        }
+        if (w > l) pts++;
+        sd += w - l;
+        gd += tg - og;
+      }
+      leaderboard.push({
+        teamId: t.id,
+        teamName: t.name,
+        points: pts,
+        setDiff: sd,
+        gamesDiff: gd,
+      });
+    }
+
+    leaderboard.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.setDiff !== a.setDiff) return b.setDiff - a.setDiff;
+      return b.gamesDiff - a.gamesDiff;
+    });
   }
 
   return (
     <div className="p-5 flex flex-col gap-8">
       <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      {/* ← NEW: global error banner */}
+      {errorMessage && (
+        <div className="bg-red-600 text-white p-3 rounded">
+          {decodeURIComponent(errorMessage)}
+        </div>
+      )}
+
       <p className="text-lg">Welcome, {userName}!</p>
 
-      {/* 🔹 Show your player code */}
+      {/* Your Player Code */}
       <div className="border rounded p-4">
         <strong>Your Player Code:</strong>{" "}
         <code className="text-xl">{you.player_code ?? "—"}</code>
@@ -180,7 +228,12 @@ export default async function PrivatePage() {
                 <ul className="list-disc pl-6">
                   {teammates.map((t) => (
                     <li key={t.id}>
-                      {t.name} {t.surname}
+                      {t.name} {t.surname}{" "}
+                      <form action={removeTeammateAction} className="inline ml-2">
+                        <input type="hidden" name="teamId" value={team.id} />
+                        <input type="hidden" name="playerId" value={t.id} />
+                        <button className="text-red-500">&times;</button>
+                      </form>
                     </li>
                   ))}
                 </ul>
@@ -189,32 +242,58 @@ export default async function PrivatePage() {
               )}
             </div>
 
-            {/* ➕ Add by code form */}
-            <form
-              action={addTeammateByCode}
-              className="mt-4 flex gap-2 items-center"
-            >
-              <input
-                type="text"
-                name="playerCode"
-                placeholder="Enter player code"
-                className="border px-2 py-1 rounded"
-                required
-              />
-              <SubmitButton
-                type="submit"
-                className=""
+            {/* Add-by-code only if no teammate */}
+            {teammates.length === 0 && (
+              <form
+                action={addTeammateByCode}
+                className="mt-4 flex gap-2 items-center"
               >
-                Add Teammate
-              </SubmitButton>
-            </form>
+                <input
+                  name="playerCode"
+                  placeholder="Enter player code"
+                  className="border px-2 py-1 rounded flex-1"
+                  required
+                />
+                <SubmitButton>Add Teammate</SubmitButton>
+              </form>
+            )}
 
-            {/* Performance */}
+            {/* Your Team’s Performance */}
             <div className="mt-4 border-t pt-4">
-              <h3 className="font-medium">Team Performance</h3>
-              <p>Points: {points}</p>
-              <p>Set Diff: {setDiff}</p>
-              <p>Games Diff: {gamesDiff}</p>
+              <h3 className="font-medium">Your Performance</h3>
+              <p>Points: {ownPoints}</p>
+              <p>Set Diff: {ownSetDiff}</p>
+              <p>Games Diff: {ownGamesDiff}</p>
+            </div>
+
+            {/* League Leaderboard */}
+            <div className="mt-6 border-t pt-4">
+              <h3 className="font-medium">League Leaderboard</h3>
+              <table className="w-full text-left mt-2">
+                <thead>
+                  <tr>
+                    <th className="pb-2">Team</th>
+                    <th className="pb-2">Pts</th>
+                    <th className="pb-2">Sets</th>
+                    <th className="pb-2">Games</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboard.map((row) => (
+                    <tr
+                      key={row.teamId}
+                      className={
+                        row.teamId === team?.id ? "font-bold bg-gray-800" : ""
+                      }
+                    >
+                      <td className="py-1">{row.teamName}</td>
+                      <td className="py-1">{row.points}</td>
+                      <td className="py-1">{row.setDiff}</td>
+                      <td className="py-1">{row.gamesDiff}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </>
         ) : (

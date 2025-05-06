@@ -1,7 +1,7 @@
-// app/protected/add-teammate/action.ts
+// app/protected/add-teammate/actions.ts
 "use server";
 
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 
 export async function addTeammateByCode(formData: FormData) {
@@ -11,7 +11,7 @@ export async function addTeammateByCode(formData: FormData) {
   const code = formData.get("playerCode")?.toString().trim();
   if (!code) throw new Error("Player code is required");
 
-  // 2️⃣ get the current authenticated user‐>player row 
+  // 2️⃣ get the current authenticated user → player row
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -42,19 +42,14 @@ export async function addTeammateByCode(formData: FormData) {
   if (mErr || !m?.team_id) throw new Error("You must belong to a team first");
   const team_id = m.team_id;
 
-  // 6️⃣ insert them into your team
+  // 6️⃣ insert them into your team (swallow duplicate errors)
   const { error: insErr } = await supabase
     .from("team_members")
     .insert({ team_id, player_id: them.id });
-  if (insErr) {
-    // if it’s a duplicate unique‐violation, swallow it (they’re already in)
-    if (insErr.code === "23505") {
-      // no-op
-    } else {
-      throw insErr;
-    }
+  if (insErr && insErr.code !== '23505') {
+    throw new Error(insErr.message);
   }
 
-  // 7️⃣ go back to dashboard and you’ll see the new teammate
-  return redirect("/protected");
+  // 7️⃣ revalidate the dashboard so it reflects the change
+  revalidatePath("/protected");
 }

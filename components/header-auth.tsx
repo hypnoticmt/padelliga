@@ -53,11 +53,11 @@ export default async function AuthButton() {
             Create a Team
           </Link>
           <Link href="/protected/join-team" className="hover:underline">Join a Team</Link>
-          <Link href="/protected/book-match" className="hover:underline">
-            Book a Match
-          </Link>
           <Link href="/protected/leaderboards" className="hover:underline">
             Leaderboards
+          </Link>
+          <Link href="/protected/edit-profile" className="hover:underline">
+            Edit Profile
           </Link>
         </nav>
 

@@ -1,6 +1,6 @@
 // app/protected/actions.ts
 "use server";
-
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
 export async function createTeamAction(formData: FormData) {
@@ -27,6 +27,17 @@ export async function createTeamAction(formData: FormData) {
   }
   if (already) {
     throw new Error(`Team name “${teamName}” is already taken.`);
+  }
+
+  // 2️⃣•5️⃣ Prevent more than one teammate code
+  if (rawCodes) {
+    const codes = rawCodes
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+    if (codes.length > 1) {
+      throw new Error("You may only add **one** teammate when creating a team.");
+    }
   }
 
   // 3️⃣ Create the team
@@ -65,46 +76,58 @@ export async function createTeamAction(formData: FormData) {
     throw new Error("Could not add captain to team");
   }
 
-  // 6️⃣ Optionally parse comma-sep teammateCodes
+  // 6️⃣ Invite your single teammate (if provided)
   if (rawCodes) {
-    const codes = rawCodes
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c.length > 0);
-
-    for (const code of codes) {
-      // look up each code
-      const { data: p, error: pErr } = await supabase
-        .from("players")
-        .select("id")
-        .eq("player_code", code)
-        .maybeSingle();
-
-      if (pErr) {
-        console.warn(`Error looking up code ${code}:`, pErr.message);
-        continue;
-      }
-      if (!p) {
-        console.warn(`No player found with code ${code}, skipping.`);
-        continue;
-      }
-
-      // insert into team_members (ignore duplicates silently)
+    const code = rawCodes.trim();
+    const { data: p, error: pErr } = await supabase
+      .from("players")
+      .select("id")
+      .eq("player_code", code)
+      .maybeSingle();
+    if (pErr) {
+      console.warn(`Error looking up code ${code}:`, pErr.message);
+    } else if (!p) {
+      console.warn(`No player found with code ${code}, skipping.`);
+    } else {
       const { error: tmErr } = await supabase
         .from("team_members")
         .insert({ team_id: newTeam.id, player_id: p.id });
       if (tmErr && tmErr.code !== "23505") {
-        console.error(
-          `Error adding player ${p.id} to team_members:`,
-          tmErr.message
-        );
+        console.error(`Error inviting player ${p.id}:`, tmErr.message);
       }
     }
   }
 }
 
-// ——————————————————————
-// If you still need createLeagueAction, keep it; otherwise delete it too.
-//
-// export async function createLeagueAction(formData: FormData) { ... }
-// ——————————————————————
+
+export async function removeTeammateAction(formData: FormData) {
+  const supabase = await createClient();
+  const teamId   = formData.get("teamId")   as string;
+  const playerId = formData.get("playerId") as string;
+
+  // 1️⃣ Auth & fetch your user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // 2️⃣ Make sure you’re the captain
+  const { data: team } = await supabase
+    .from("teams")
+    .select("captain_id")
+    .eq("id", teamId)
+    .maybeSingle();
+
+  if (team?.captain_id !== user.id) {
+    // ✋ redirect back to dashboard with an error message
+    return redirect(`/protected?error=${encodeURIComponent("Only the captain can remove teammates")}`);
+  }
+
+  // 3️⃣ Actually delete
+  await supabase
+    .from("team_members")
+    .delete()
+    .eq("team_id",   teamId)
+    .eq("player_id", playerId);
+
+  // 4️⃣ back home
+  return redirect("/protected");
+}

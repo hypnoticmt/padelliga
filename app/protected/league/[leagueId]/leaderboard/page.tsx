@@ -13,78 +13,58 @@ interface TeamLeaderboardRow {
   gamesDifference: number;
 }
 
-// Using "any" for the props is a common workaround until a stricter type can be defined.
-export default async function LeaderboardPage({ params, searchParams }: any) {
+export default async function LeaderboardPage({ params }: any) {
   const supabase = await createClient();
 
-  // (Optional) Check if the user is logged in.
+  // auth check
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/sign-in");
-  }
+  if (!user) redirect("/sign-in");
 
-  // If your route is /protected/league/[leagueId]/leaderboard, we get leagueId from params
-  const { leagueId } = await params;
+  const leagueId = params.leagueId as string;
 
-  // 1. Fetch teams in the league (including captain_id)
+  // 1️⃣ fetch all teams in league
   const { data: teams, error: teamsError } = await supabase
     .from("teams")
-    .select("*") // includes captain_id
+    .select("id, name")
     .eq("league_id", leagueId);
+
   if (teamsError) {
     console.error("Error fetching teams:", teamsError.message);
     return <p>Error fetching teams.</p>;
   }
-  const teamList = teams ?? [];
 
-  // Prepare an array for leaderboard rows.
   const leaderboard: TeamLeaderboardRow[] = [];
 
-  // For each team, gather players and compute match statistics.
-  for (const team of teamList) {
-    // 2. Fetch players for the team (include user_id so we can find the captain)
-    const { data: players, error: playersError } = await supabase
-      .from("players")
-      .select("user_id, name, surname") // user_id is needed to find the captain
-      .eq("team_id", team.id);
+  for (const team of teams ?? []) {
+    // 2️⃣ fetch exactly two players via the bridge
+    const { data: memberRows, error: membersError } = await supabase
+      .from("team_members")
+      .select("player:players(name, surname)")
+      .eq("team_id", team.id)
+      .order("id", { ascending: true }) // ensure deterministic order
+      .limit(2);
 
-    if (playersError) {
-      console.error(
-        `Error fetching players for team ${team.id}:`,
-        playersError.message
-      );
+    if (membersError) {
+      console.error(`Error fetching players for team ${team.id}:`, membersError.message);
       continue;
     }
-    const teamPlayers = players ?? [];
 
-    // If there's a captain, put them at the front
-    if (team.captain_id) {
-      const captainIndex = teamPlayers.findIndex(
-        (p) => p.user_id === team.captain_id
-      );
-      if (captainIndex >= 0) {
-        // remove the captain from that index
-        const [captain] = teamPlayers.splice(captainIndex, 1);
-        // unshift captain to front
-        teamPlayers.unshift(captain);
-      }
-    }
+    // supabase returns an array of objects like { player: { name, surname } }
+    const players = (memberRows ?? []).map((r: any) =>
+      `${r.player.name} ${r.player.surname}`
+    );
 
-    // Now your first element is the captain (if present)
-    const player1 = teamPlayers[0]
-      ? `${teamPlayers[0].name} ${teamPlayers[0].surname}`
-      : "";
-    const player2 = teamPlayers[1]
-      ? `${teamPlayers[1].name} ${teamPlayers[1].surname}`
-      : "";
+    const player1 = players[0] || "";
+    const player2 = players[1] || "";
 
-    // 3. Fetch all matches in which the team played.
+    // 3️⃣ compute stats
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
       .select("*")
       .or(`team1_id.eq.${team.id},team2_id.eq.${team.id}`);
+
     if (matchesError) {
       console.error(
         `Error fetching matches for team ${team.id}:`,
@@ -92,21 +72,12 @@ export default async function LeaderboardPage({ params, searchParams }: any) {
       );
       continue;
     }
-    const matchList = matches ?? [];
 
-    // Initialize totals for this team across ALL matches
     let points = 0;
     let setDiff = 0;
     let gamesDiff = 0;
 
-    // Process each match
-    for (const match of matchList) {
-      let setsWon = 0;
-      let setsLost = 0;
-      let teamGames = 0;
-      let opponentGames = 0;
-
-      // 3B. Fetch match sets for the match.
+    for (const match of matches ?? []) {
       const { data: sets, error: setsError } = await supabase
         .from("match_sets")
         .select("*")
@@ -120,43 +91,29 @@ export default async function LeaderboardPage({ params, searchParams }: any) {
         );
         continue;
       }
-      const setList = sets ?? [];
 
-      console.log(
-        `Match: ${match.id}, Team: ${team.id} => Found ${setList.length} sets`
-      );
-      // For each set, see if this team is match.team1_id or match.team2_id
-      for (const set of setList) {
-        console.log("  Processing set:", set);
+      let won = 0;
+      let lost = 0;
+      let tg = 0;
+      let og = 0;
 
-        if (match.team1_id === team.id) {
-          if (set.set_winner === 1) setsWon++;
-          else if (set.set_winner === 2) setsLost++;
-
-          teamGames += set.team1_games;
-          opponentGames += set.team2_games;
-        } else if (match.team2_id === team.id) {
-          if (set.set_winner === 2) setsWon++;
-          else if (set.set_winner === 1) setsLost++;
-
-          teamGames += set.team2_games;
-          opponentGames += set.team1_games;
+      for (const s of sets ?? []) {
+        const isTeam1 = match.team1_id === team.id;
+        // who won this set?
+        if ((isTeam1 && s.set_winner === 1) || (!isTeam1 && s.set_winner === 2)) {
+          won++;
+        } else {
+          lost++;
         }
+        tg += isTeam1 ? s.team1_games : s.team2_games;
+        og += isTeam1 ? s.team2_games : s.team1_games;
       }
 
-      console.log(
-        `  => setsWon: ${setsWon}, setsLost: ${setsLost}, teamGames: ${teamGames}, oppGames: ${opponentGames}`
-      );
-
-      // If setsWon > setsLost => team wins that match => +1 point
-      if (setsWon > setsLost) {
-        points++;
-      }
-      setDiff += setsWon - setsLost;
-      gamesDiff += teamGames - opponentGames;
+      if (won > lost) points++;
+      setDiff += won - lost;
+      gamesDiff += tg - og;
     }
 
-    // Add final row for the team
     leaderboard.push({
       teamId: team.id,
       teamName: team.name,
@@ -168,10 +125,11 @@ export default async function LeaderboardPage({ params, searchParams }: any) {
     });
   }
 
-  // 4. Sort the leaderboard by points, then set difference, then games difference.
+  // 4️⃣ sort the leaderboard
   leaderboard.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
-    if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
+    if (b.setDifference !== a.setDifference)
+      return b.setDifference - a.setDifference;
     return b.gamesDifference - a.gamesDifference;
   });
 
