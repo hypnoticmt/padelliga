@@ -43,11 +43,11 @@ interface PrivatePageProps {
   };
 }
 
-export default async function PrivatePage({ searchParams }: PrivatePageProps) {
+export default async function PrivatePage({ searchParams }: any) {
   const supabase = await createClient();
 
   // 0️⃣ Read any ?error=… query-param (no await!)
-  const { error: queryErrorMessage } = await searchParams;
+  const { error: queryErrorMessage } = searchParams?.error;
 
 
   // 1️⃣ Auth
