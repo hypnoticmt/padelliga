@@ -33,6 +33,9 @@ export default async function AuthButton() {
           <Link href="/protected/join-team" className="hover:underline">
             Join a Team
           </Link>
+          <Link href="/protected/submit-score" className="hover:underline">
+            Submit Score
+          </Link>
           <Link href="/protected/leaderboards" className="hover:underline">
             Leaderboards
           </Link>
