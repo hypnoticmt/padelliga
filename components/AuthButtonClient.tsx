@@ -10,9 +10,11 @@ import React, { useState } from "react";
 export default function AuthButtonClient({
   isAuthenticated,
   displayName,
+  isAdmin,
 }: {
   isAuthenticated: boolean;
   displayName: string;
+  isAdmin: boolean;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -31,13 +33,16 @@ export default function AuthButtonClient({
           <Link href="/protected/submit-score" className="hover:underline">Submit Score</Link>
           <Link href="/protected/leaderboards" className="hover:underline">Leaderboards</Link>
           <Link href="/protected/edit-profile" className="hover:underline">Edit Profile</Link>
+          {isAdmin && (
+            <Link href="/protected/admin" className="hover:underline">Admin</Link>
+          )}
         </nav>
 
         {/* Mobile menu button */}
         <div className="md:hidden">
           <button
             onClick={toggleMobileMenu}
-            className="text-gray-700 hover:text-blue-600 focus:outline-none"
+            className="hover:text-gray-300 focus:outline-none"
           >
             {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -51,20 +56,39 @@ export default function AuthButtonClient({
 
         {/* Mobile menu content */}
         {isMobileMenuOpen && (
-          <div className="absolute top-16 left-0 w-full bg-white shadow-lg px-4 py-3 space-y-2 z-50">
-            <Link href="/protected/" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Dashboard</Link>
-            <Link href="/protected/create-team" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Create a Team</Link>
-            <Link href="/protected/join-team" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Join a Team</Link>
-            <Link href="/protected/submit-score" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Submit Score</Link>
-            <Link href="/protected/leaderboards" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Leaderboards</Link>
-            <Link href="/protected/edit-profile" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Edit Profile</Link>
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setIsMobileMenuOpen(false)}
+            ></div>
 
-            <div className="px-3 py-2 text-gray-700">Hey, {displayName}!</div>
+            {/* Right-side drawer */}
+            <div
+              className={`
+                fixed top-16 right-0 h-[calc(100vh-4rem)] w-64
+                bg-background px-4 py-3 space-y-2 z-50 overflow-y-auto
+                transition-transform duration-300 ease-out
+                ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+              `}
+            >
+              <Link href="/protected/" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 hover:text-gray-300">Dashboard</Link>
+              <Link href="/protected/create-team" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 hover:text-gray-300">Create Team</Link>
+              <Link href="/protected/join-team" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 hover:text-gray-300">Join Team</Link>
+              <Link href="/protected/submit-score" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 hover:text-gray-300">Submit Score</Link>
+              <Link href="/protected/leaderboards" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 hover:text-gray-300">Leaderboards</Link>
+              <Link href="/protected/edit-profile" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 hover:text-gray-300">Edit Profile</Link>
+              {isAdmin && (
+                <Link href="/protected/admin" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 hover:text-gray-300">Admin</Link>
+              )}
 
-            <form action={signOutAction}>
-              <SubmitButton type="submit" variant="default">Sign out</SubmitButton>
-            </form>
-          </div>
+              <div className="px-3 py-2">Hey, {displayName}!</div>
+
+              <form action={signOutAction}>
+                <SubmitButton type="submit" variant="default">Sign out</SubmitButton>
+              </form>
+            </div>
+          </>
         )}
       </div>
     );

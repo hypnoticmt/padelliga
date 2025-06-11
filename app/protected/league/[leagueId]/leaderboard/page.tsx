@@ -1,7 +1,8 @@
-// app/protected/league/[leagueId]/leaderboard/page.tsx
+'use client';
 
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { createClient } from "@/utils/supabase/client";
 
 interface TeamLeaderboardRow {
   teamId: string;
@@ -13,153 +14,168 @@ interface TeamLeaderboardRow {
   gamesDifference: number;
 }
 
-export default async function LeaderboardPage({ params }: any) {
-  const supabase = await createClient();
+export default function LeaderboardPage() {
+  const pathname = usePathname();
+  const leagueId = pathname.split('/')[3];
 
-  // auth check
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
+  return <LeaderboardPageContent leagueId={leagueId} />;
+}
 
-  const leagueId = params.leagueId as string;
+function LeaderboardPageContent({ leagueId }: { leagueId: string }) {
+  const [leaderboard, setLeaderboard] = useState<TeamLeaderboardRow[]>([]);
 
-  // 1️⃣ fetch all teams in league
-  const { data: teams, error: teamsError } = await supabase
-    .from("teams")
-    .select("id, name")
-    .eq("league_id", leagueId);
+  useEffect(() => {
+    const fetchData = async () => {
+      const supabase = createClient();
 
-  if (teamsError) {
-    console.error("Error fetching teams:", teamsError.message);
-    return <p>Error fetching teams.</p>;
-  }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = '/sign-in';
+        return;
+      }
 
-  const leaderboard: TeamLeaderboardRow[] = [];
+      const { data: teams, error: teamsError } = await supabase
+        .from('teams')
+        .select('id, name')
+        .eq('league_id', leagueId);
 
-  for (const team of teams ?? []) {
-    // 2️⃣ fetch exactly two players via the bridge
-    const { data: memberRows, error: membersError } = await supabase
-      .from("team_members")
-      .select("player:players(name, surname)")
-      .eq("team_id", team.id)
-      .order("id", { ascending: true }) // ensure deterministic order
-      .limit(2);
+      if (teamsError) {
+        console.error('Error fetching teams:', teamsError.message);
+        return;
+      }
 
-    if (membersError) {
-      console.error(`Error fetching players for team ${team.id}:`, membersError.message);
-      continue;
-    }
+      const leaderboardData: TeamLeaderboardRow[] = [];
 
-    // supabase returns an array of objects like { player: { name, surname } }
-    const players = (memberRows ?? []).map((r: any) =>
-      `${r.player.name} ${r.player.surname}`
-    );
+      for (const team of teams ?? []) {
+        const { data: memberRows } = await supabase
+          .from('team_members')
+          .select('player:players(name, surname)')
+          .eq('team_id', team.id)
+          .order('id', { ascending: true })
+          .limit(2);
 
-    const player1 = players[0] || "";
-    const player2 = players[1] || "";
-
-    // 3️⃣ compute stats
-    const { data: matches, error: matchesError } = await supabase
-      .from("matches")
-      .select("*")
-      .or(`team1_id.eq.${team.id},team2_id.eq.${team.id}`);
-
-    if (matchesError) {
-      console.error(
-        `Error fetching matches for team ${team.id}:`,
-        matchesError.message
-      );
-      continue;
-    }
-
-    let points = 0;
-    let setDiff = 0;
-    let gamesDiff = 0;
-
-    for (const match of matches ?? []) {
-      const { data: sets, error: setsError } = await supabase
-        .from("match_sets")
-        .select("*")
-        .eq("match_id", match.id)
-        .order("set_number", { ascending: true });
-
-      if (setsError) {
-        console.error(
-          `Error fetching sets for match ${match.id}:`,
-          setsError.message
+        const players = (memberRows ?? []).map((r: any) =>
+          `${r.player.name} ${r.player.surname}`
         );
-        continue;
-      }
 
-      let won = 0;
-      let lost = 0;
-      let tg = 0;
-      let og = 0;
+        const player1 = players[0] || '';
+        const player2 = players[1] || '';
 
-      for (const s of sets ?? []) {
-        const isTeam1 = match.team1_id === team.id;
-        // who won this set?
-        if ((isTeam1 && s.set_winner === 1) || (!isTeam1 && s.set_winner === 2)) {
-          won++;
-        } else {
-          lost++;
+        const { data: matches } = await supabase
+          .from('matches')
+          .select('*')
+          .or(`team1_id.eq.${team.id},team2_id.eq.${team.id}`);
+
+        let points = 0;
+        let setDiff = 0;
+        let gamesDiff = 0;
+
+        for (const match of matches ?? []) {
+          const { data: sets } = await supabase
+            .from('match_sets')
+            .select('*')
+            .eq('match_id', match.id)
+            .order('set_number', { ascending: true });
+
+          let won = 0;
+          let lost = 0;
+          let tg = 0;
+          let og = 0;
+
+          for (const s of sets ?? []) {
+            const isTeam1 = match.team1_id === team.id;
+            if ((isTeam1 && s.set_winner === 1) || (!isTeam1 && s.set_winner === 2)) {
+              won++;
+            } else {
+              lost++;
+            }
+            tg += isTeam1 ? s.team1_games : s.team2_games;
+            og += isTeam1 ? s.team2_games : s.team1_games;
+          }
+
+          if (won > lost) points++;
+          setDiff += won - lost;
+          gamesDiff += tg - og;
         }
-        tg += isTeam1 ? s.team1_games : s.team2_games;
-        og += isTeam1 ? s.team2_games : s.team1_games;
+
+        leaderboardData.push({
+          teamId: team.id,
+          teamName: team.name,
+          player1,
+          player2,
+          points,
+          setDifference: setDiff,
+          gamesDifference: gamesDiff,
+        });
       }
 
-      if (won > lost) points++;
-      setDiff += won - lost;
-      gamesDiff += tg - og;
-    }
+      leaderboardData.sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.setDifference !== a.setDifference)
+          return b.setDifference - a.setDifference;
+        return b.gamesDifference - a.gamesDifference;
+      });
 
-    leaderboard.push({
-      teamId: team.id,
-      teamName: team.name,
-      player1,
-      player2,
-      points,
-      setDifference: setDiff,
-      gamesDifference: gamesDiff,
-    });
-  }
+      setLeaderboard(leaderboardData);
+    };
 
-  // 4️⃣ sort the leaderboard
-  leaderboard.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    if (b.setDifference !== a.setDifference)
-      return b.setDifference - a.setDifference;
-    return b.gamesDifference - a.gamesDifference;
-  });
+    fetchData();
+  }, [leagueId]);
 
   return (
     <div className="p-5">
       <h1 className="text-2xl font-bold mb-4">Leaderboard</h1>
-      <table className="min-w-full border-collapse">
-        <thead>
-          <tr>
-            <th className="border px-4 py-2">Team Name</th>
-            <th className="border px-4 py-2">Player 1</th>
-            <th className="border px-4 py-2">Player 2</th>
-            <th className="border px-4 py-2">Points</th>
-            <th className="border px-4 py-2">Set Difference</th>
-            <th className="border px-4 py-2">Games Difference</th>
-          </tr>
-        </thead>
-        <tbody>
-          {leaderboard.map((row) => (
-            <tr key={row.teamId}>
-              <td className="border px-4 py-2">{row.teamName}</td>
-              <td className="border px-4 py-2">{row.player1}</td>
-              <td className="border px-4 py-2">{row.player2}</td>
-              <td className="border px-4 py-2">{row.points}</td>
-              <td className="border px-4 py-2">{row.setDifference}</td>
-              <td className="border px-4 py-2">{row.gamesDifference}</td>
+
+      {/* Desktop table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="min-w-full border-collapse text-sm text-left">
+          <thead>
+            <tr>
+              <th className="border px-4 py-2">Team Name</th>
+              <th className="border px-4 py-2">Player 1</th>
+              <th className="border px-4 py-2">Player 2</th>
+              <th className="border px-4 py-2">Points</th>
+              <th className="border px-4 py-2">Set Difference</th>
+              <th className="border px-4 py-2">Games Difference</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {leaderboard.map((row) => (
+              <tr key={row.teamId}>
+                <td className="border px-4 py-2">{row.teamName}</td>
+                <td className="border px-4 py-2">{row.player1}</td>
+                <td className="border px-4 py-2">{row.player2}</td>
+                <td className="border px-4 py-2">{row.points}</td>
+                <td className="border px-4 py-2">{row.setDifference}</td>
+                <td className="border px-4 py-2">{row.gamesDifference}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile stacked cards */}
+      <div className="sm:hidden space-y-4">
+        {leaderboard.map((row, index) => (
+          <div
+            key={row.teamId}
+            className="border rounded-lg p-4 shadow-sm bg-background"
+          >
+            <div className="font-bold text-lg mb-2">
+              #{index + 1} — {row.teamName}
+            </div>
+            <div className="text-sm space-y-1">
+              <div>Player 1: {row.player1}</div>
+              <div>Player 2: {row.player2}</div>
+              <div>Points: {row.points}</div>
+              <div>Set Difference: {row.setDifference}</div>
+              <div>Games Difference: {row.gamesDifference}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

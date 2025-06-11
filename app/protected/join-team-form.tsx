@@ -1,4 +1,3 @@
-// app/join-team/join-team-form.tsx
 "use client";
 
 import { useState, FormEvent, useMemo } from "react";
@@ -26,7 +25,6 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
   const [selectedTeam, setSelectedTeam] = useState("");
   const [message, setMessage] = useState("");
 
-  // Filter teams by the selected league
   const filteredTeams = useMemo(() => {
     if (!selectedLeague) return [];
     return teams.filter((team) => team.league_id === selectedLeague);
@@ -44,19 +42,25 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
+    <form
+      onSubmit={handleSubmit}
+      className="w-full max-w-sm mx-auto p-6 bg-background border rounded-lg shadow-sm flex flex-col space-y-4"
+    >
       {/* League Dropdown */}
-      <label className="flex flex-col gap-1">
-        <span className="text-lg">Select a League</span>
+      <div>
+        <label htmlFor="leagueId" className="block text-sm font-medium mb-1">
+          Select a League
+        </label>
         <select
-          name="leagueId" // not strictly needed for the join action, but we can keep it
+          id="leagueId"
+          name="leagueId"
           value={selectedLeague}
           onChange={(e) => {
             setSelectedLeague(e.target.value);
-            setSelectedTeam(""); // reset team selection
+            setSelectedTeam("");
           }}
           required
-          className="border border-foreground/20 p-2 rounded"
+          className="w-full p-3 rounded-lg border text-sm"
         >
           <option value="">-- Choose a League --</option>
           {leagues.map((league) => (
@@ -65,17 +69,20 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
-      {/* Team Dropdown (Filtered by selectedLeague) */}
-      <label className="flex flex-col gap-1">
-        <span className="text-lg">Select a Team</span>
+      {/* Team Dropdown */}
+      <div>
+        <label htmlFor="teamId" className="block text-sm font-medium mb-1">
+          Select a Team
+        </label>
         <select
+          id="teamId"
           name="teamId"
           value={selectedTeam}
           onChange={(e) => setSelectedTeam(e.target.value)}
           required
-          className="border border-foreground/20 p-2 rounded"
+          className="w-full p-3 rounded-lg border text-sm"
         >
           <option value="">-- Choose a Team --</option>
           {filteredTeams.map((team) => (
@@ -84,16 +91,15 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
-      <SubmitButton
-        type="submit"
-        className="flex flex-col gap-1"
-      >
+      <SubmitButton type="submit" className="w-full">
         Join Team
       </SubmitButton>
 
-      {message && <p className="text-sm mt-2">{message}</p>}
+      {message && (
+        <p className="text-sm text-green-600 mt-2 text-center">{message}</p>
+      )}
     </form>
   );
 }

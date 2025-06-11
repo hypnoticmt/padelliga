@@ -308,7 +308,7 @@ export default async function PrivatePage({
                     <tr
                       key={row.teamId}
                       className={
-                        row.teamId === team?.id ? "font-bold bg-gray-800" : ""
+                        row.teamId === team?.id ? "font-bold" : ""
                       }
                     >
                       <td className="py-1">{row.teamName}</td>

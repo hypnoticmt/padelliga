@@ -1,4 +1,6 @@
 // app/leaderboards/page.tsx
+export const dynamic = "force-dynamic"; // Force dynamic rendering
+
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 

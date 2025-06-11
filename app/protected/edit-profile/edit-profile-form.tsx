@@ -1,5 +1,6 @@
 "use client";
 
+import { SubmitButton } from "@/components/submit-button";
 import { updateProfileAction } from "./actions";
 
 export default function EditProfileForm({
@@ -10,46 +11,55 @@ export default function EditProfileForm({
   return (
     <form
       action={updateProfileAction}
-      className="max-w-md mx-auto flex flex-col gap-4"
+      className="w-full max-w-sm mx-auto p-6 bg-background border rounded-lg shadow-sm flex flex-col space-y-4"
     >
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">First Name</span>
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium mb-1">
+          First Name
+        </label>
         <input
+          id="name"
           name="name"
           type="text"
           defaultValue={initial.name}
           required
-          className="border p-2 rounded"
+          className="w-full p-3 rounded-lg border text-sm"
         />
-      </label>
+      </div>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Last Name</span>
+      <div>
+        <label htmlFor="surname" className="block text-sm font-medium mb-1">
+          Last Name
+        </label>
         <input
+          id="surname"
           name="surname"
           type="text"
           defaultValue={initial.surname}
           required
-          className="border p-2 rounded"
+          className="w-full p-3 rounded-lg border text-sm"
         />
-      </label>
+      </div>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Phone Number</span>
+      <div>
+        <label htmlFor="phone" className="block text-sm font-medium mb-1">
+          Phone Number
+        </label>
         <input
+          id="phone"
           name="phone"
           type="tel"
           defaultValue={initial.phone ?? ""}
-          className="border p-2 rounded"
+          className="w-full p-3 rounded-lg border text-sm"
         />
-      </label>
+      </div>
 
-      <button
+      <SubmitButton
         type="submit"
-        className="mt-4 rounded bg-white text-black px-4 py-2"
+        className="w-full rounded-lg bg-primary font-bold p-3 hover:bg-primary/90"
       >
         Save Changes
-      </button>
+      </SubmitButton>
     </form>
   );
 }

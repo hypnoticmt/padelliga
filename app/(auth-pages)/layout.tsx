@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // Force dynamic rendering
+
 export default async function Layout({
   children,
 }: {

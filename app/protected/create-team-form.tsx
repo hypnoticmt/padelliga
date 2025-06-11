@@ -1,6 +1,6 @@
 "use client";
 import { useState, FormEvent } from "react";
-import { createTeamAction } from "@/app/protected/actions"; // adjust path if needed
+import { createTeamAction } from "@/app/protected/actions";
 import { SubmitButton } from "@/components/submit-button";
 
 export interface League { id: string; name: string }
@@ -20,9 +20,7 @@ export default function CreateTeamForm({
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // calls your server‐side action:
     await createTeamAction(new FormData(e.currentTarget));
-    // clear on success:
     setTeamName("");
     setRegionId("");
     setLeagueId("");
@@ -31,29 +29,38 @@ export default function CreateTeamForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
+    <form
+      onSubmit={handleSubmit}
+      className="w-full max-w-sm mx-auto p-6 bg-background border rounded-lg shadow-sm flex flex-col space-y-4"
+    >
       {/* Team Name */}
-      <label className="flex flex-col gap-1">
-        <span className="text-sm">Team Name</span>
+      <div>
+        <label htmlFor="teamName" className="block text-sm font-medium mb-1">
+          Team Name
+        </label>
         <input
+          id="teamName"
           name="teamName"
           type="text"
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
           required
-          className="border p-2 rounded"
+          className="w-full p-3 rounded-lg border text-sm"
         />
-      </label>
+      </div>
 
       {/* Region */}
-      <label className="flex flex-col gap-1">
-        <span className="text-sm">Region</span>
+      <div>
+        <label htmlFor="regionId" className="block text-sm font-medium mb-1">
+          Region
+        </label>
         <select
+          id="regionId"
           name="regionId"
           value={regionId}
           onChange={(e) => setRegionId(e.target.value)}
           required
-          className="border p-2 rounded"
+          className="w-full p-3 rounded-lg border text-sm"
         >
           <option value="">-- Select Region --</option>
           {regions.map((r) => (
@@ -62,41 +69,25 @@ export default function CreateTeamForm({
             </option>
           ))}
         </select>
-      </label>
-
-      {/* League */}
-      <label className="flex flex-col gap-1">
-        <span className="text-sm">League</span>
-        <select
-          name="leagueId"
-          value={leagueId}
-          onChange={(e) => setLeagueId(e.target.value)}
-          required
-          className="border p-2 rounded"
-        >
-          <option value="">-- Select League --</option>
-          {leagues.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      </div>
 
       {/* Teammate Codes */}
-      <label className="flex flex-col gap-1">
-        <span className="text-sm">Teammate Player Code</span>
+      <div>
+        <label htmlFor="teammateCodes" className="block text-sm font-medium mb-1">
+          Teammate Player Code
+        </label>
         <input
+          id="teammateCodes"
           name="teammateCodes"
           type="text"
           placeholder="e.g. 12345"
           value={teammateCodes}
           onChange={(e) => setTeammateCodes(e.target.value)}
-          className="border p-2 rounded"
+          className="w-full p-3 rounded-lg border text-sm"
         />
-      </label>
+      </div>
 
-      <SubmitButton type="submit" className="mt-4">
+      <SubmitButton type="submit" className="w-full">
         Create Team
       </SubmitButton>
     </form>
