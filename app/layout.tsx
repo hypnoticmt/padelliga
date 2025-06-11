@@ -1,6 +1,6 @@
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { Analytics } from "@vercel/analytics/react"
-import HeaderAuth from "@/components/header-auth";
+import AuthButtonWrapper from "@/components/AuthButtonWrapper";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import { Geist } from "next/font/google";
@@ -44,7 +44,7 @@ export default function RootLayout({
                   <div className="text-xl flex gap-5 items-center font-bold">
                     <Link href={"/"}>Padel Liga</Link>
                   </div>
-                  {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
+                  {!hasEnvVars ? <EnvVarWarning /> : <AuthButtonWrapper />}
                 </div>
               </nav>
               <div className="flex flex-col gap-20 max-w-5xl p-5">
