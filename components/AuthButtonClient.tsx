@@ -30,7 +30,6 @@ export default function AuthButtonClient({
           <Link href="/protected/" className="hover:underline">Dashboard</Link>
           <Link href="/protected/create-team" className="hover:underline">Create a Team</Link>
           <Link href="/protected/join-team" className="hover:underline">Join a Team</Link>
-          <Link href="/protected/submit-score" className="hover:underline">Submit Score</Link>
           <Link href="/protected/leaderboards" className="hover:underline">Leaderboards</Link>
           <Link href="/protected/edit-profile" className="hover:underline">Edit Profile</Link>
           {isAdmin && (
