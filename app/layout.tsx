@@ -7,6 +7,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "sonner";
 import Link from "next/link";
 import "./globals.css";
 
@@ -62,6 +63,16 @@ export default function RootLayout({
               <ThemeSwitcher />
             </footer>
           </main>
+          
+          {/* Toast Notifications */}
+          <Toaster 
+            position="top-right" 
+            richColors 
+            closeButton
+            toastOptions={{
+              duration: 4000,
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

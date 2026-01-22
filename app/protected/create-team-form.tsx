@@ -2,6 +2,8 @@
 import { useState, FormEvent } from "react";
 import { createTeamAction } from "@/app/protected/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export interface League { id: string; name: string }
 export interface Region { id: string; name: string }
@@ -17,15 +19,39 @@ export default function CreateTeamForm({
   const [regionId, setRegionId] = useState("");
   const [leagueId, setLeagueId] = useState("");
   const [teammateCodes, setTeammateCodes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    await createTeamAction(new FormData(e.currentTarget));
-    setTeamName("");
-    setRegionId("");
-    setLeagueId("");
-    setTeammateCodes("");
-    alert("Team created!");
+    setSubmitting(true);
+
+    try {
+      await createTeamAction(new FormData(e.currentTarget));
+      
+      // Reset form
+      setTeamName("");
+      setRegionId("");
+      setLeagueId("");
+      setTeammateCodes("");
+      
+      // Success toast
+      toast.success("Team created successfully! 🎾", {
+        description: `${teamName} has been added to the league.`,
+      });
+      
+      // Redirect to dashboard
+      setTimeout(() => {
+        router.push("/protected");
+      }, 1000);
+      
+    } catch (error: any) {
+      toast.error("Failed to create team", {
+        description: error.message || "Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -45,7 +71,8 @@ export default function CreateTeamForm({
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
           required
-          className="w-full p-3 rounded-lg border text-sm"
+          disabled={submitting}
+          className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
         />
       </div>
 
@@ -60,7 +87,8 @@ export default function CreateTeamForm({
           value={regionId}
           onChange={(e) => setRegionId(e.target.value)}
           required
-          className="w-full p-3 rounded-lg border text-sm"
+          disabled={submitting}
+          className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
         >
           <option value="">-- Select Region --</option>
           {regions.map((r) => (
@@ -83,12 +111,17 @@ export default function CreateTeamForm({
           placeholder="e.g. 12345"
           value={teammateCodes}
           onChange={(e) => setTeammateCodes(e.target.value)}
-          className="w-full p-3 rounded-lg border text-sm"
+          disabled={submitting}
+          className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
         />
       </div>
 
-      <SubmitButton type="submit" className="w-full">
-        Create Team
+      <SubmitButton 
+        type="submit" 
+        className="w-full" 
+        disabled={submitting}
+      >
+        {submitting ? "Creating..." : "Create Team"}
       </SubmitButton>
     </form>
   );

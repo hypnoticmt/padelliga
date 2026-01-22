@@ -3,7 +3,7 @@
 import { SubmitButton } from "@/components/submit-button";
 import { createClient } from "@/utils/supabase/client";
 import { redirect } from "next/navigation";
-
+import { startLeagueAction } from "./actions";
 
 import { useState, useEffect, useMemo } from "react";
 
@@ -14,6 +14,7 @@ export default function AdminPage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedLeague, setSelectedLeague] = useState("");
@@ -69,7 +70,7 @@ export default function AdminPage() {
 
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [message]);
+  }, []);
 
   async function refreshMatches() {
     const { data } = await supabaseClient
@@ -79,37 +80,25 @@ export default function AdminPage() {
     setMatches(data || []);
   }
 
-  async function handleStartLeague(formData: FormData) {
-    const leagueId = formData.get("leagueId") as string;
-
-    const { data: teamsData } = await supabaseClient
-      .from("teams")
-      .select("id")
-      .eq("league_id", leagueId);
-
-    const base = Date.now();
-    let offset = 0; // 1 day between created matches
-
-    for (let i = 0; i < (teamsData?.length || 0); i++) {
-      for (let j = i + 1; j < (teamsData?.length || 0); j++) {
-        await supabaseClient.from("matches").insert({
-          league_id: leagueId,
-          team1_id: teamsData![i].id,
-          team2_id: teamsData![j].id,
-          match_date: new Date(base + offset * 24 * 60 * 60 * 1000).toISOString(),
-          status: "Scheduled",
-        });
-        offset++;
-      }
+  async function handleStartLeague(leagueId: string) {
+    setLoading(true);
+    setMessage("");
+    
+    try {
+      const result = await startLeagueAction(leagueId);
+      
+      // Refresh data
+      const { data: leaguesData } = await supabaseClient.from("leagues").select("*");
+      setLeagues(leaguesData || []);
+      await refreshMatches();
+      
+      setMessage(`✓ League started! Created ${result.matchesCreated} matches for ${result.teamsCount} teams.`);
+    } catch (error: any) {
+      console.error("Error starting league:", error);
+      setMessage(`✗ Error: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-
-    await supabaseClient
-      .from("leagues")
-      .update({ league_started: true })
-      .eq("id", leagueId);
-
-    await refreshMatches();
-    setMessage("League started!");
   }
 
   async function handleAssignTeam(e: React.FormEvent<HTMLFormElement>) {
@@ -156,37 +145,58 @@ export default function AdminPage() {
     <div className="w-full max-w-2xl mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
 
+      {/* Message Display */}
+      {message && (
+        <div className={`p-4 rounded border ${
+          message.startsWith('✓') 
+            ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200' 
+            : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200'
+        }`}>
+          <pre className="whitespace-pre-wrap text-sm">{message}</pre>
+        </div>
+      )}
+
       {/* Manage Leagues */}
       <section>
         <h2 className="text-xl font-semibold mb-2">Manage Leagues</h2>
         <ul className="space-y-2">
-          {leagues?.map((league) => (
-            <li
-              key={league.id}
-              className="border rounded p-3 flex justify-between items-center"
-            >
-              <span>
-                {league.name} {league.league_started ? "(Started)" : "(Not started)"}
-              </span>
-              {!league.league_started && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    handleStartLeague(formData);
-                  }}
-                >
-                  <input type="hidden" name="leagueId" value={league.id} />
-                  <SubmitButton
-                    type="submit"
-                    className="bg-primary px-3 py-1 rounded"
-                  >
-                    Start League
-                  </SubmitButton>
-                </form>
-              )}
-            </li>
-          ))}
+          {leagues?.map((league) => {
+            const teamsInLeague = teams.filter(t => t.league_id === league.id);
+            return (
+              <li
+                key={league.id}
+                className="border rounded p-3"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-medium">{league.name}</span>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({teamsInLeague.length} teams)
+                    </span>
+                    {league.league_started && (
+                      <span className="ml-2 text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200">
+                        Started
+                      </span>
+                    )}
+                  </div>
+                  {!league.league_started && (
+                    <SubmitButton
+                      onClick={() => handleStartLeague(league.id)}
+                      disabled={loading || teamsInLeague.length < 2}
+                      className="bg-primary px-3 py-1 rounded disabled:opacity-50"
+                    >
+                      {loading ? "Starting..." : "Start League"}
+                    </SubmitButton>
+                  )}
+                </div>
+                {!league.league_started && teamsInLeague.length < 2 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    ⚠️ Need at least 2 teams to start league
+                  </p>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -237,10 +247,6 @@ export default function AdminPage() {
             Assign Team to League
           </SubmitButton>
         </form>
-
-        {message && (
-          <p className="text-green-600 text-sm text-center mt-4">{message}</p>
-        )}
       </section>
 
       {/* Teams by league (cards) */}
@@ -306,7 +312,7 @@ export default function AdminPage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">All teams assigned ✔</p>
+              <p className="text-sm text-muted-foreground">All teams assigned ✓</p>
             )}
           </div>
         </div>
@@ -337,7 +343,7 @@ export default function AdminPage() {
                   {teamById[m.team1_id] || "Team 1"} vs {teamById[m.team2_id] || "Team 2"}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {leagueById[m.league_id] || "Unknown league"} • {m.match_date ? new Date(m.match_date).toLocaleString() : "No date"}
+                  {leagueById[m.league_id] || "Unknown league"}
                 </div>
               </div>
               <div className="text-sm font-semibold">

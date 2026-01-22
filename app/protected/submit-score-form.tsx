@@ -3,18 +3,37 @@
 import { useState, FormEvent } from "react";
 import { submitScoreAction } from "@/app/protected/submit-score/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function SubmitScoreForm({ matchId }: { matchId: string }) {
-  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setSubmitting(true);
+
     try {
       const formData = new FormData(e.currentTarget);
       await submitScoreAction(formData);
-      setMessage("Scores submitted successfully!");
+      
+      // Success toast
+      toast.success("Score submitted successfully! 🎾", {
+        description: "The leaderboard has been updated.",
+      });
+      
+      // Redirect back to dashboard after a brief delay
+      setTimeout(() => {
+        router.push("/protected");
+      }, 1000);
+      
     } catch (error: any) {
-      setMessage(error.message);
+      // Error toast
+      toast.error("Failed to submit score", {
+        description: error.message || "Please try again.",
+      });
+      setSubmitting(false);
     }
   }
 
@@ -43,7 +62,8 @@ export default function SubmitScoreForm({ matchId }: { matchId: string }) {
               id={`set${setNumber}_team1`}
               name={`set${setNumber}_team1`}
               required
-              className="w-full p-3 rounded-lg border text-sm"
+              disabled={submitting}
+              className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
             >
               {Array.from({ length: 8 }, (_, i) => (
                 <option key={i} value={i}>
@@ -64,7 +84,8 @@ export default function SubmitScoreForm({ matchId }: { matchId: string }) {
               id={`set${setNumber}_team2`}
               name={`set${setNumber}_team2`}
               required
-              className="w-full p-3 rounded-lg border text-sm"
+              disabled={submitting}
+              className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
             >
               {Array.from({ length: 8 }, (_, i) => (
                 <option key={i} value={i}>
@@ -85,7 +106,8 @@ export default function SubmitScoreForm({ matchId }: { matchId: string }) {
               id={`set${setNumber}_winner`}
               name={`set${setNumber}_winner`}
               required
-              className="w-full p-3 rounded-lg border text-sm"
+              disabled={submitting}
+              className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
             >
               <option value="">-- Select Winner --</option>
               <option value="1">Team 1</option>
@@ -95,13 +117,13 @@ export default function SubmitScoreForm({ matchId }: { matchId: string }) {
         </div>
       ))}
 
-      <SubmitButton type="submit" className="w-full">
-        Submit Scores
+      <SubmitButton 
+        type="submit" 
+        className="w-full" 
+        disabled={submitting}
+      >
+        {submitting ? "Submitting..." : "Submit Scores"}
       </SubmitButton>
-
-      {message && (
-        <p className="text-sm text-green-600 mt-2 text-center">{message}</p>
-      )}
     </form>
   );
 }
