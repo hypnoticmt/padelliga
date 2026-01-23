@@ -6,6 +6,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { addTeammateByCode } from "./add-teammate/actions";
 import { removeTeammateAction } from "./actions";
 import { calculateLeagueLeaderboard, calculateTeamStats } from "@/lib/leaderboard";
+import MatchCard from "@/components/match-card";
 
 interface PlayerRow {
   id: string;
@@ -22,14 +23,6 @@ interface TeamRow {
   captain_id: string;
 }
 interface JoinedTeam { id: string; name: string }
-interface JoinedMatch {
-  id: string;
-  match_date: string;
-  status?: string;
-  score_summary?: string | null;
-  team1: JoinedTeam | null;
-  team2: JoinedTeam | null;
-}
 
 export default async function PrivatePage({
   searchParams,
@@ -105,64 +98,88 @@ export default async function PrivatePage({
     teammates = all.filter((p) => p.user_id !== user.id);
   }
 
-  // 6️⃣ Upcoming matches helper
+  // 6️⃣ Extract team helper
   const extractTeam = (v: any): JoinedTeam | null => {
     if (!v) return null;
     return Array.isArray(v) ? v[0] : v;
   };
 
-  // 7️⃣ Upcoming matches (matches that haven't been completed yet)
-  let upcomingMatches: JoinedMatch[] = [];
-  let completedMatches: JoinedMatch[] = [];
-  
+  // 7️⃣ Pending matches (no scores submitted yet) with player information
+  let upcomingMatches: any[] = [];
   if (teamId) {
-    // Get pending matches
-    const { data: pendingMatchesData } = await supabase
+    const { data: matches, error: matchesError } = await supabase
       .from("matches")
       .select(`
         id,
-        match_date,
-        status,
-        score_summary,
+        team1_id,
+        team2_id,
         team1:team1_id ( id, name ),
         team2:team2_id ( id, name )
       `)
-      .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`)
-      .in("status", ["Scheduled", "In Progress"]);
+      .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`);
     
-    upcomingMatches = (pendingMatchesData ?? []).map((m: any) => ({
-      id: m.id,
-      match_date: m.match_date,
-      status: m.status,
-      score_summary: m.score_summary,
-      team1: extractTeam(m.team1),
-      team2: extractTeam(m.team2),
-    }));
+    if (matchesError) {
+      console.error("Error fetching matches:", matchesError);
+    }
+    
+    // Fetch player details for each match
+    const matchesWithPlayers = await Promise.all(
+      (matches ?? []).map(async (m: any) => {
+        try {
+          // Check if this match already has scores
+          const { data: existingSets } = await supabase
+            .from("match_sets")
+            .select("id")
+            .eq("match_id", m.id)
+            .limit(1);
+          
+          // Skip matches that already have scores
+          if (existingSets && existingSets.length > 0) {
+            return null;
+          }
+          
+          // Fetch team1 players
+          const { data: team1Members } = await supabase
+            .from("team_members")
+            .select("player:players(id, name, surname, phone)")
+            .eq("team_id", m.team1_id);
+          
+          // Fetch team2 players
+          const { data: team2Members } = await supabase
+            .from("team_members")
+            .select("player:players(id, name, surname, phone)")
+            .eq("team_id", m.team2_id);
 
-    // Get completed matches
-    const { data: completedMatchesData } = await supabase
-      .from("matches")
-      .select(`
-        id,
-        match_date,
-        status,
-        score_summary,
-        team1:team1_id ( id, name ),
-        team2:team2_id ( id, name )
-      `)
-      .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`)
-      .eq("status", "Completed")
-      .order("match_date", { ascending: false })
-      .limit(10);
-    
-    completedMatches = (completedMatchesData ?? []).map((m: any) => ({
-      id: m.id,
-      match_date: m.match_date,
-      status: m.status,
-      score_summary: m.score_summary,
-      team1: extractTeam(m.team1),
-      team2: extractTeam(m.team2),
-    }));
+          return {
+            id: m.id,
+            team1_id: m.team1_id,
+            team2_id: m.team2_id,
+            team1: extractTeam(m.team1),
+            team2: extractTeam(m.team2),
+            team1Players: (team1Members ?? []).flatMap((tm: any) => 
+              Array.isArray(tm.player) ? tm.player : [tm.player]
+            ).filter(Boolean),
+            team2Players: (team2Members ?? []).flatMap((tm: any) => 
+              Array.isArray(tm.player) ? tm.player : [tm.player]
+            ).filter(Boolean),
+          };
+        } catch (error) {
+          console.error(`Error fetching players for match ${m.id}:`, error);
+          // Return match anyway, even if player fetch fails
+          return {
+            id: m.id,
+            team1_id: m.team1_id,
+            team2_id: m.team2_id,
+            team1: extractTeam(m.team1),
+            team2: extractTeam(m.team2),
+            team1Players: [],
+            team2Players: [],
+          };
+        }
+      })
+    );
+
+    upcomingMatches = matchesWithPlayers.filter(Boolean); // Remove null entries (completed matches)
   }
 
   // 8️⃣ 🚀 NEW: Use optimized team stats calculation
@@ -321,57 +338,32 @@ export default async function PrivatePage({
         )}
       </section>
 
-      {/* 📅 Pending Matches */}
+      {/* 📅 Pending Matches (no scores submitted yet) */}
       <section className="border rounded p-4">
-        <h2 className="text-xl font-semibold mb-2">Pending Matches</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Pending Matches</h2>
+          <span className="text-sm text-muted-foreground">
+            {upcomingMatches.length} {upcomingMatches.length === 1 ? 'match' : 'matches'}
+          </span>
+        </div>
         {upcomingMatches.length > 0 ? (
-          <ul className="space-y-2">
+          <div className="space-y-3">
             {upcomingMatches.map((m) => (
-              <li key={m.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 dark:hover:bg-gray-900">
-                <span className="font-medium">
-                  {m.team1?.name ?? "TBD"} vs {m.team2?.name ?? "TBD"}
-                </span>
-                <Link
-                  href={`/protected/submit-score?matchId=${m.id}`}
-                >
-                  <SubmitButton>Submit Score</SubmitButton>
-                </Link>
-              </li>
+              <MatchCard
+                key={m.id}
+                matchId={m.id}
+                team1Name={m.team1?.name ?? "TBD"}
+                team2Name={m.team2?.name ?? "TBD"}
+                team1Players={m.team1Players}
+                team2Players={m.team2Players}
+                isTeam1={m.team1_id === teamId}
+              />
             ))}
-          </ul>
+          </div>
         ) : (
-          <p className="text-gray-500">No pending matches. All matches have been played!</p>
+          <p className="text-gray-500">No pending matches. All matches have been completed!</p>
         )}
       </section>
-
-      {/* 📊 Match History */}
-      {completedMatches.length > 0 && (
-        <section className="border rounded p-4">
-          <h2 className="text-xl font-semibold mb-2">Recent Match Results</h2>
-          <ul className="space-y-2">
-            {completedMatches.map((m) => {
-              const matchDate = m.match_date ? new Date(m.match_date).toLocaleDateString() : 'Date N/A';
-              return (
-                <li key={m.id} className="flex items-center justify-between p-3 border rounded bg-gray-50 dark:bg-gray-900">
-                  <div className="flex-1">
-                    <div className="font-medium">
-                      {m.team1?.name ?? "TBD"} vs {m.team2?.name ?? "TBD"}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {matchDate}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-lg">
-                      {m.score_summary || "N/A"}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
