@@ -29,18 +29,15 @@ export default function CreateTeamForm({
     try {
       await createTeamAction(new FormData(e.currentTarget));
       
-      // Reset form
       setTeamName("");
       setRegionId("");
       setLeagueId("");
       setTeammateCodes("");
       
-      // Success toast
       toast.success("Team created successfully! 🎾", {
         description: `${teamName} has been added to the league.`,
       });
       
-      // Redirect to dashboard
       setTimeout(() => {
         router.push("/protected");
       }, 1000);
@@ -57,11 +54,12 @@ export default function CreateTeamForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-sm mx-auto p-6 bg-background border rounded-lg shadow-sm flex flex-col space-y-4"
+      className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-lg space-y-6"
     >
       {/* Team Name */}
       <div>
-        <label htmlFor="teamName" className="block text-sm font-medium mb-1">
+        <label htmlFor="teamName" className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <span className="text-lg">🎯</span>
           Team Name
         </label>
         <input
@@ -70,15 +68,17 @@ export default function CreateTeamForm({
           type="text"
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
+          placeholder="Enter your team name"
           required
           disabled={submitting}
-          className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
+          className="w-full p-4 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/50 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
 
       {/* Region */}
       <div>
-        <label htmlFor="regionId" className="block text-sm font-medium mb-1">
+        <label htmlFor="regionId" className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <span className="text-lg">📍</span>
           Region
         </label>
         <select
@@ -88,7 +88,7 @@ export default function CreateTeamForm({
           onChange={(e) => setRegionId(e.target.value)}
           required
           disabled={submitting}
-          className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
+          className="w-full p-4 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/50 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="">-- Select Region --</option>
           {regions.map((r) => (
@@ -97,11 +97,16 @@ export default function CreateTeamForm({
             </option>
           ))}
         </select>
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <span>⚠️</span>
+          Region cannot be changed after team creation
+        </p>
       </div>
 
-      {/* Teammate Codes */}
+      {/* Teammate Code */}
       <div>
-        <label htmlFor="teammateCodes" className="block text-sm font-medium mb-1">
+        <label htmlFor="teammateCodes" className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <span className="text-lg">👤</span>
           Teammate Player Code
         </label>
         <input
@@ -112,16 +117,33 @@ export default function CreateTeamForm({
           value={teammateCodes}
           onChange={(e) => setTeammateCodes(e.target.value)}
           disabled={submitting}
-          className="w-full p-3 rounded-lg border text-sm disabled:opacity-50"
+          className="w-full p-4 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/50 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono"
         />
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Optional: Add one teammate now or invite them later
+        </p>
       </div>
 
+      {/* Submit Button */}
       <SubmitButton 
         type="submit" 
-        className="w-full" 
+        className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:transform-none" 
         disabled={submitting}
       >
-        {submitting ? "Creating..." : "Create Team"}
+        {submitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            Creating...
+          </span>
+        ) : (
+          <span className="flex items-center justify-center gap-2">
+            <span>✨</span>
+            Create Team
+          </span>
+        )}
       </SubmitButton>
     </form>
   );

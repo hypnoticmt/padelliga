@@ -3,8 +3,6 @@
 import { SubmitButton } from "@/components/submit-button";
 import { createClient } from "@/utils/supabase/client";
 import { redirect } from "next/navigation";
-import { startLeagueAction } from "./actions";
-
 import { useState, useEffect, useMemo } from "react";
 
 export default function AdminPage() {
@@ -14,13 +12,10 @@ export default function AdminPage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-
   const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedLeague, setSelectedLeague] = useState("");
   const [leagueFilter, setLeagueFilter] = useState("");
 
-  // lookups for names
   const leagueById = useMemo(() => {
     const m: Record<string, string> = {};
     leagues.forEach((l: any) => (m[l.id] = l.name));
@@ -69,8 +64,7 @@ export default function AdminPage() {
     };
 
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [message]);
 
   async function refreshMatches() {
     const { data } = await supabaseClient
@@ -80,25 +74,38 @@ export default function AdminPage() {
     setMatches(data || []);
   }
 
-  async function handleStartLeague(leagueId: string) {
-    setLoading(true);
-    setMessage("");
-    
-    try {
-      const result = await startLeagueAction(leagueId);
-      
-      // Refresh data
-      const { data: leaguesData } = await supabaseClient.from("leagues").select("*");
-      setLeagues(leaguesData || []);
-      await refreshMatches();
-      
-      setMessage(`✓ League started! Created ${result.matchesCreated} matches for ${result.teamsCount} teams.`);
-    } catch (error: any) {
-      console.error("Error starting league:", error);
-      setMessage(`✗ Error: ${error.message}`);
-    } finally {
-      setLoading(false);
+  async function handleStartLeague(formData: FormData) {
+    const leagueId = formData.get("leagueId") as string;
+
+    const { data: teamsData } = await supabaseClient
+      .from("teams")
+      .select("id")
+      .eq("league_id", leagueId);
+
+    const base = Date.now();
+    let offset = 0;
+
+    for (let i = 0; i < (teamsData?.length || 0); i++) {
+      for (let j = i + 1; j < (teamsData?.length || 0); j++) {
+        await supabaseClient.from("matches").insert({
+          league_id: leagueId,
+          team1_id: teamsData![i].id,
+          team2_id: teamsData![j].id,
+          match_date: new Date(base + offset * 24 * 60 * 60 * 1000).toISOString(),
+          status: "Scheduled",
+        });
+        offset++;
+      }
     }
+
+    await supabaseClient
+      .from("leagues")
+      .update({ league_started: true })
+      .eq("id", leagueId);
+
+    await refreshMatches();
+    setMessage("League started successfully!");
+    setTimeout(() => setMessage(""), 3000);
   }
 
   async function handleAssignTeam(e: React.FormEvent<HTMLFormElement>) {
@@ -115,10 +122,10 @@ export default function AdminPage() {
     if (error) {
       console.error("Error updating team league_id:", error.message);
       setMessage("Error assigning team to league!");
+      setTimeout(() => setMessage(""), 3000);
       return;
     }
 
-    // Re-fetch teams after update
     const { data: teamsData } = await supabaseClient
       .from("teams")
       .select("*, league_id");
@@ -126,10 +133,10 @@ export default function AdminPage() {
     setTeams(teamsData || []);
     setSelectedTeam("");
     setSelectedLeague("");
-    setMessage("Team assigned to league!");
+    setMessage("Team assigned successfully!");
+    setTimeout(() => setMessage(""), 3000);
   }
 
-  // Derived groups for cards
   const unassignedTeams = useMemo(() => teams.filter((t) => !t.league_id), [teams]);
 
   const teamsByLeague = useMemo(() => {
@@ -142,94 +149,127 @@ export default function AdminPage() {
   }, [leagues, teams]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 space-y-8">
-      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-8 border-2 border-purple-200 dark:border-purple-800 shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg">
+            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+              Admin Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Manage leagues, teams, and matches
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {/* Message Display */}
+      {/* Success Message */}
       {message && (
-        <div className={`p-4 rounded border ${
-          message.startsWith('✓') 
-            ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200' 
-            : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200'
-        }`}>
-          <pre className="whitespace-pre-wrap text-sm">{message}</pre>
+        <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl p-4 flex items-center gap-3 animate-slide-in">
+          <span className="text-2xl">✅</span>
+          <p className="text-green-800 dark:text-green-200 font-medium">{message}</p>
         </div>
       )}
 
       {/* Manage Leagues */}
-      <section>
-        <h2 className="text-xl font-semibold mb-2">Manage Leagues</h2>
-        <ul className="space-y-2">
-          {leagues?.map((league) => {
-            const teamsInLeague = teams.filter(t => t.league_id === league.id);
-            return (
-              <li
-                key={league.id}
-                className="border rounded p-3"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">{league.name}</span>
-                    <span className="text-sm text-muted-foreground ml-2">
-                      ({teamsInLeague.length} teams)
-                    </span>
-                    {league.league_started && (
-                      <span className="ml-2 text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200">
-                        Started
-                      </span>
-                    )}
-                  </div>
-                  {!league.league_started && (
-                    <SubmitButton
-                      onClick={() => handleStartLeague(league.id)}
-                      disabled={loading || teamsInLeague.length < 2}
-                      className="bg-primary px-3 py-1 rounded disabled:opacity-50"
-                    >
-                      {loading ? "Starting..." : "Start League"}
-                    </SubmitButton>
-                  )}
-                </div>
-                {!league.league_started && teamsInLeague.length < 2 && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                    ⚠️ Need at least 2 teams to start league
+      <section className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-blue-500 rounded-xl">
+            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold">Manage Leagues</h2>
+        </div>
+        <div className="space-y-3">
+          {leagues?.map((league) => (
+            <div
+              key={league.id}
+              className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-700 rounded-xl"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{league.league_started ? "✅" : "⏳"}</span>
+                <div>
+                  <p className="font-semibold text-lg">{league.name}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {league.league_started ? "Started" : "Not started"}
                   </p>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                </div>
+              </div>
+              {!league.league_started && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    handleStartLeague(formData);
+                  }}
+                >
+                  <input type="hidden" name="leagueId" value={league.id} />
+                  <SubmitButton
+                    type="submit"
+                    className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>🚀</span>
+                      Start League
+                    </span>
+                  </SubmitButton>
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Assign Teams to League */}
-      <section>
-        <h2 className="text-xl font-semibold mb-2">Assign Team to League</h2>
-        <form onSubmit={handleAssignTeam} className="space-y-2">
+      <section className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-green-500 rounded-xl">
+            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold">Assign Team to League</h2>
+        </div>
+        
+        <form onSubmit={handleAssignTeam} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Select Team</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              Select Team
+            </label>
             <select
               name="teamId"
               required
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
-              className="w-full p-3 rounded-lg border text-sm"
+              className="w-full p-4 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 focus:border-green-500 dark:focus:border-green-500 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/50 outline-none transition-all"
             >
               <option value="">-- Select Team --</option>
               {teams?.map((team) => (
                 <option key={team.id} value={team.id}>
-                  {team.name} {team.league_id ? `→ ${leagueById[team.league_id] ?? team.league_name ?? "Unknown league"}` : "(Unassigned)"}
+                  {team.name} {team.league_id ? `→ ${leagueById[team.league_id] ?? "Unknown league"}` : "(Unassigned)"}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Select League</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              Select League
+            </label>
             <select
               name="leagueId"
               required
               value={selectedLeague}
               onChange={(e) => setSelectedLeague(e.target.value)}
-              className="w-full p-3 rounded-lg border text-sm"
+              className="w-full p-4 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 focus:border-green-500 dark:focus:border-green-500 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/50 outline-none transition-all"
             >
               <option value="">-- Select League --</option>
               {leagues?.map((league) => (
@@ -242,39 +282,50 @@ export default function AdminPage() {
 
           <SubmitButton
             type="submit"
-            className="w-full bg-primary px-4 py-2 rounded"
+            className="w-full py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
           >
-            Assign Team to League
+            <span className="flex items-center justify-center gap-2">
+              <span>✨</span>
+              Assign Team to League
+            </span>
           </SubmitButton>
         </form>
       </section>
 
-      {/* Teams by league (cards) */}
-      <section>
-        <h2 className="text-xl font-semibold mb-2">Teams in Leagues</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+      {/* Teams Overview */}
+      <section className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-purple-500 rounded-xl">
+            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold">Teams in Leagues</h2>
+        </div>
+        
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {leagues.map((league) => {
             const list = teamsByLeague[league.id] || [];
             return (
-              <div key={league.id} className="border rounded-lg p-4 shadow-sm bg-background">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">{league.name}</h3>
-                  <span className="text-xs px-2 py-1 rounded-full border">
+              <div key={league.id} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-lg">{league.name}</h3>
+                  <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-xs font-semibold">
                     {list.length} {list.length === 1 ? "team" : "teams"}
                   </span>
                 </div>
                 {list.length ? (
-                  <ul className="text-sm space-y-1">
+                  <ul className="space-y-2">
                     {list.map((t) => (
-                      <li key={t.id} className="flex items-center justify-between">
-                        <span>{t.name}</span>
+                      <li key={t.id} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <span className="font-medium">{t.name}</span>
                         <button
                           type="button"
                           onClick={() => {
                             setSelectedTeam(t.id);
                             setSelectedLeague(league.id);
                           }}
-                          className="text-xs underline"
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
                         >
                           Reassign
                         </button>
@@ -282,29 +333,29 @@ export default function AdminPage() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No teams yet.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">No teams yet.</p>
                 )}
               </div>
             );
           })}
 
           {/* Unassigned */}
-          <div className="border rounded-lg p-4 shadow-sm bg-background">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold">Unassigned</h3>
-              <span className="text-xs px-2 py-1 rounded-full border">
+          <div className="border-2 border-amber-200 dark:border-amber-800 rounded-xl p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-lg">⚠️ Unassigned</h3>
+              <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 rounded-full text-xs font-semibold">
                 {unassignedTeams.length} {unassignedTeams.length === 1 ? "team" : "teams"}
               </span>
             </div>
             {unassignedTeams.length ? (
-              <ul className="text-sm space-y-1">
+              <ul className="space-y-2">
                 {unassignedTeams.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between">
-                    <span>{t.name}</span>
+                  <li key={t.id} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-amber-700">
+                    <span className="font-medium">{t.name}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedTeam(t.id)}
-                      className="text-xs underline"
+                      className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 underline"
                     >
                       Assign…
                     </button>
@@ -312,47 +363,84 @@ export default function AdminPage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">All teams assigned ✓</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 italic">All teams assigned ✓</p>
             )}
           </div>
         </div>
       </section>
 
       {/* All Matches */}
-      <section>
-        <h2 className="text-xl font-semibold mb-2">All Matches</h2>
-        <div className="flex items-center gap-2 mb-3">
-          <label className="text-sm">Filter:</label>
-          <select
-            value={leagueFilter}
-            onChange={(e) => setLeagueFilter(e.target.value)}
-            className="p-2 border rounded text-sm"
-          >
-            <option value="">All leagues</option>
-            {leagues.map((l) => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
+      <section className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-500 rounded-xl">
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold">All Matches</h2>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Filter:</label>
+            <select
+              value={leagueFilter}
+              onChange={(e) => setLeagueFilter(e.target.value)}
+              className="px-4 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm focus:border-yellow-500 dark:focus:border-yellow-500 outline-none transition-all"
+            >
+              <option value="">All leagues</option>
+              {leagues.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filteredMatches.map((m: any) => (
-            <div key={m.id} className="border rounded p-3 flex items-center justify-between">
-              <div>
-                <div className="font-medium">
+            <div key={m.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 gap-3">
+              <div className="flex-1">
+                <div className="font-semibold text-lg mb-1">
                   {teamById[m.team1_id] || "Team 1"} vs {teamById[m.team2_id] || "Team 2"}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {leagueById[m.league_id] || "Unknown league"}
+                <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    {leagueById[m.league_id] || "Unknown league"}
+                  </span>
+                  {m.match_date && (
+                    <span className="flex items-center gap-1">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {new Date(m.match_date).toLocaleString()}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="text-sm font-semibold">
-                {m.score_summary || "—"}
+              <div className="flex items-center gap-3">
+                {m.score_summary && (
+                  <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-sm font-semibold">
+                    {m.score_summary}
+                  </span>
+                )}
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  m.status === 'Completed' 
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
+                }`}>
+                  {m.status || 'Scheduled'}
+                </span>
               </div>
             </div>
           ))}
           {filteredMatches.length === 0 && (
-            <p className="text-sm text-muted-foreground">No matches found.</p>
+            <div className="text-center py-12">
+              <span className="text-4xl mb-2 block">📋</span>
+              <p className="text-gray-500 dark:text-gray-400">No matches found.</p>
+            </div>
           )}
         </div>
       </section>

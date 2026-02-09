@@ -1,4 +1,5 @@
-export const dynamic = "force-dynamic"; // Force dynamic rendering
+// app/(auth-pages)/layout.tsx or your layout file
+export const dynamic = "force-dynamic";
 
 export default async function Layout({
   children,
@@ -6,6 +7,9 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="max-w-7xl flex flex-col gap-12 items-start">{children}</div>
+    // Changed from max-w-7xl to w-full to allow hero to be full-width
+    <div className="w-full flex flex-col gap-12 items-start">
+      {children}
+    </div>
   );
 }
