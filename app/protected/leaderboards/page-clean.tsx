@@ -1,5 +1,5 @@
 // app/leaderboards/page.tsx
-export const revalidate = 60; // Cache for 60 seconds
+export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
@@ -17,27 +17,25 @@ export default async function AllLeaderboardsPage() {
   
   const leagueList = leagues ?? [];
 
-  // Fetch team counts for ALL leagues in ONE query (optimized)
-  const { data: allTeams } = await supabase
-    .from("teams")
-    .select("league_id");
-
-  // Count teams per league
-  const teamCountMap = new Map<string, number>();
-  allTeams?.forEach((team: any) => {
-    const count = teamCountMap.get(team.league_id) || 0;
-    teamCountMap.set(team.league_id, count + 1);
-  });
-
-  const leaguesWithCounts = leagueList.map((league: any) => ({
-    ...league,
-    teamCount: teamCountMap.get(league.id) || 0,
-  }));
+  // Fetch team counts for each league
+  const leaguesWithCounts = await Promise.all(
+    leagueList.map(async (league: any) => {
+      const { count } = await supabase
+        .from("teams")
+        .select("*", { count: "exact", head: true })
+        .eq("league_id", league.id);
+      
+      return {
+        ...league,
+        teamCount: count ?? 0,
+      };
+    })
+  );
 
   return (
-    <div className="max-w-6xl mx-auto px-5 pt-8 space-y-8 animate-fade-in">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="border-b border-gray-200 dark:border-brand-slate pb-6">
+      <div className="border-b border-gray-200 dark:border-gray-800 pb-6">
         <h1 className="text-4xl font-bold mb-2 text-gray-900 dark:text-white">
           League Leaderboards
         </h1>
@@ -47,7 +45,7 @@ export default async function AllLeaderboardsPage() {
       </div>
 
       {/* Info Card */}
-      <div className="bg-gray-50 dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-4">
+      <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
         <p className="font-medium text-gray-900 dark:text-white mb-2">
           How Leaderboards Work
         </p>
@@ -68,7 +66,7 @@ export default async function AllLeaderboardsPage() {
               className="group stagger-item block"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <div className="h-full bg-white dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-6 hover:border-orange-500 transition-all duration-300 card-lift">
+              <div className="h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6 hover:border-orange-500 transition-all duration-300 card-lift">
                 
                 {/* Content */}
                 <div>
@@ -85,7 +83,7 @@ export default async function AllLeaderboardsPage() {
                         Active
                       </span>
                     ) : (
-                      <span className="px-3 py-1 bg-gray-100 dark:bg-brand-slate text-gray-600 dark:text-gray-400 rounded-full text-xs font-medium">
+                      <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full text-xs font-medium">
                         Upcoming
                       </span>
                     )}
@@ -105,7 +103,7 @@ export default async function AllLeaderboardsPage() {
                   </div>
 
                   {/* View Button */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-brand-slate">
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                     <span className="text-sm font-medium text-orange-500 group-hover:text-orange-600 transition-colors">
                       View Leaderboard
                     </span>
@@ -124,8 +122,8 @@ export default async function AllLeaderboardsPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 dark:bg-brand-slate flex items-center justify-center">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-12 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
             <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
             </svg>
@@ -139,7 +137,7 @@ export default async function AllLeaderboardsPage() {
 
       {/* Bottom Info */}
       {leaguesWithCounts.length > 0 && (
-        <div className="bg-gray-50 dark:bg-brand-slate rounded-lg p-6 border border-gray-200 dark:border-brand-slate">
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800">
           <p className="font-semibold text-gray-900 dark:text-white mb-1">
             {leaguesWithCounts.length} {leaguesWithCounts.length === 1 ? 'League' : 'Leagues'} Available
           </p>

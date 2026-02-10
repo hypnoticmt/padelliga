@@ -2,6 +2,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server";
+import { validateMatchScore, type SetScore } from "@/lib/score-validation";
 
 // This action receives a match id and scores for 3 sets.
 export async function submitScoreAction(formData: FormData) {
@@ -15,7 +16,7 @@ export async function submitScoreAction(formData: FormData) {
   const sets = [1, 2, 3].map((setNumber) => {
     const team1_games = parseInt(formData.get(`set${setNumber}_team1`) as string, 10);
     const team2_games = parseInt(formData.get(`set${setNumber}_team2`) as string, 10);
-    const set_winner = parseInt(formData.get(`set${setNumber}_winner`) as string, 10); // 1 or 2
+    const set_winner = parseInt(formData.get(`set${setNumber}_winner`) as string, 10) as 1 | 2;
     return {
       set_number: setNumber,
       team1_games,
@@ -23,6 +24,14 @@ export async function submitScoreAction(formData: FormData) {
       set_winner,
     };
   });
+
+  // Server-side score validation
+  const validation = validateMatchScore(
+    sets.map(s => ({ team1Games: s.team1_games, team2Games: s.team2_games, setWinner: s.set_winner }))
+  );
+  if (!validation.valid) {
+    throw new Error(`Invalid score: ${validation.errors.join("; ")}`);
+  }
 
   // Insert all set records
   const { error: setsError } = await supabase.from("match_sets").insert(

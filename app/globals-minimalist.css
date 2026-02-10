@@ -16,69 +16,53 @@ html, body {
 }
 
 body {
-  @apply bg-white dark:bg-[#1C1C1E];
-  font-weight: 400;
-  overflow-y: scroll; /* keep width stable when content height changes */
-  scrollbar-gutter: stable;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-}
-
-/* Ensure inline code doesn't force monospace (keeps Poppins everywhere) */
-code {
-  font-family: inherit;
+  @apply bg-white dark:bg-gray-950;
 }
 
 @layer base {
   :root {
-    /* Light mode - Off-White backgrounds */
-    --background: 0 0% 97%; /* #F7F7F7 */
-    --foreground: 210 11% 11%; /* #1C1C1E charcoal */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 210 11% 11%;
+    --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 11% 11%;
-    --primary: 210 11% 11%; /* #1C1C1E */
+    --popover-foreground: 0 0% 10%;
+    --primary: 0 0% 10%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 220 13% 22%; /* #2E3440 cool slate */
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 97%;
-    --muted-foreground: 220 13% 40%;
-    --accent: 24 100% 50%; /* #FF6A00 bright orange */
-    --accent-foreground: 0 0% 100%;
-    --success: 145 63% 49%; /* #2ECC71 court green */
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 10%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 24 100% 50%; /* Orange ring */
+    --ring: 0 0% 10%;
     --radius: 0.5rem;
   }
 
   .dark {
-    /* Dark mode - Charcoal backgrounds */
-    --background: 210 11% 11%; /* #1C1C1E */
+    --background: 0 0% 5%;
     --foreground: 0 0% 98%;
-    --card: 220 13% 22%; /* #2E3440 */
+    --card: 0 0% 8%;
     --card-foreground: 0 0% 98%;
-    --popover: 220 13% 22%;
+    --popover: 0 0% 8%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
-    --primary-foreground: 210 11% 11%;
-    --secondary: 220 13% 28%;
+    --primary-foreground: 0 0% 10%;
+    --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 220 13% 25%;
-    --muted-foreground: 0 0% 70%;
-    --accent: 24 100% 50%; /* #FF6A00 */
-    --accent-foreground: 0 0% 100%;
-    --success: 145 63% 49%; /* #2ECC71 */
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 30%;
-    --input: 220 13% 30%;
-    --ring: 24 100% 50%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 0% 80%;
   }
 }
 
@@ -124,9 +108,6 @@ code {
 /* Smooth scroll */
 html {
   scroll-behavior: smooth;
-  /* Prevent layout shift when vertical scrollbar appears/disappears */
-  scrollbar-gutter: stable;
-  overflow-y: scroll; /* fallback for browsers that ignore scrollbar-gutter */
 }
 
 /* Minimal scrollbar */
@@ -136,20 +117,20 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-[#2E3440];
+  @apply bg-gray-100 dark:bg-gray-900;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-500;
+  @apply bg-gray-400 dark:bg-gray-600;
 }
 
-/* Focus states - orange accent */
+/* Focus states */
 *:focus-visible {
-  @apply outline-none ring-2 ring-[#FF6A00] ring-offset-2 dark:ring-offset-[#1C1C1E];
+  @apply outline-none ring-2 ring-gray-900 dark:ring-white ring-offset-2 dark:ring-offset-gray-950;
 }
 
 /* Button press */
@@ -181,7 +162,7 @@ html {
 }
 
 .badge-scheduled {
-  @apply bg-[#FF6A00]/10 text-[#FF6A00] dark:bg-[#FF6A00]/20 dark:text-[#FF6A00];
+  @apply bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-300;
 }
 
 /* Empty states */

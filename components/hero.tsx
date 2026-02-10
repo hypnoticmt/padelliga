@@ -81,7 +81,7 @@ export default function Hero() {
 
           <Link
             href="/sign-in"
-            className="group px-8 py-4 text-lg font-semibold text-white border-2 border-gray-600 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-xl hover:bg-white/5"
+            className="group px-8 py-4 text-lg font-semibold text-white border-2 border-gray-600 dark:border-brand-slate hover:border-blue-500 dark:hover:border-blue-500 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-xl hover:bg-white/5"
           >
             Sign In
           </Link>
@@ -90,7 +90,7 @@ export default function Hero() {
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {/* Card 1 */}
-          <div className="group relative bg-white/5 dark:bg-white/5 backdrop-blur-lg border border-gray-700/50 dark:border-gray-800/50 rounded-2xl p-6 hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-blue-500/50">
+          <div className="group relative bg-white/5 dark:bg-white/5 backdrop-blur-lg border border-gray-700/50 dark:border-brand-slate/50 rounded-2xl p-6 hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-blue-500/50">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
               <div className="text-5xl mb-4">📊</div>
@@ -102,7 +102,7 @@ export default function Hero() {
           </div>
 
           {/* Card 2 */}
-          <div className="group relative bg-white/5 dark:bg-white/5 backdrop-blur-lg border border-gray-700/50 dark:border-gray-800/50 rounded-2xl p-6 hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-green-500/50">
+          <div className="group relative bg-white/5 dark:bg-white/5 backdrop-blur-lg border border-gray-700/50 dark:border-brand-slate/50 rounded-2xl p-6 hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-green-500/50">
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
               <div className="text-5xl mb-4">🤝</div>
@@ -114,7 +114,7 @@ export default function Hero() {
           </div>
 
           {/* Card 3 */}
-          <div className="group relative bg-white/5 dark:bg-white/5 backdrop-blur-lg border border-gray-700/50 dark:border-gray-800/50 rounded-2xl p-6 hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-purple-500/50">
+          <div className="group relative bg-white/5 dark:bg-white/5 backdrop-blur-lg border border-gray-700/50 dark:border-brand-slate/50 rounded-2xl p-6 hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-purple-500/50">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
               <div className="text-5xl mb-4">📈</div>

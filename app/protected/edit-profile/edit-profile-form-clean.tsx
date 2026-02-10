@@ -27,7 +27,7 @@ export default function EditProfileForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-8 space-y-6"
+      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 space-y-6"
     >
       {/* Name */}
       <div>
@@ -42,7 +42,7 @@ export default function EditProfileForm({
           placeholder="Enter your first name"
           required
           disabled={submitting}
-          className="w-full p-3 rounded-lg border border-gray-300 dark:border-brand-slate bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
+          className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
         />
       </div>
 
@@ -59,7 +59,7 @@ export default function EditProfileForm({
           placeholder="Enter your last name"
           required
           disabled={submitting}
-          className="w-full p-3 rounded-lg border border-gray-300 dark:border-brand-slate bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
+          className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
         />
       </div>
 
@@ -75,7 +75,7 @@ export default function EditProfileForm({
           defaultValue={initial.phone ?? ""}
           placeholder="Enter your phone number"
           disabled={submitting}
-          className="w-full p-3 rounded-lg border border-gray-300 dark:border-brand-slate bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
+          className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
         />
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           Optional: Your teammates can use this to contact you

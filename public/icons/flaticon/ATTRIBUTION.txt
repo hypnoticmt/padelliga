@@ -1,0 +1,11 @@
+Flaticon icons used in this project:
+
+- Paddle (player code) by Leremy: https://www.flaticon.com/free-icon/paddle_9937893
+- People (team) by meaicon: https://www.flaticon.com/free-icon/people_18114279
+- Stats by Vectors Market: https://www.flaticon.com/free-icon/stats_117912
+- Padel (match/pending) by Freepik: https://www.flaticon.com/free-icon/padel_16117673
+- Podium (leaderboard) by Freepik: https://www.flaticon.com/free-icon/podium_680771
+- Phone by Taufik: https://www.flaticon.com/free-icon/phone_2354127
+- Setting by Freepik: https://www.flaticon.com/free-icon/setting_2040504
+
+If your Flaticon license requires attribution, include a link to https://www.flaticon.com/ in your website.

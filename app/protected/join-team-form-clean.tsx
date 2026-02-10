@@ -59,7 +59,7 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-8 space-y-6"
+      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 space-y-6"
     >
       {/* League Dropdown */}
       <div>
@@ -76,7 +76,7 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
           }}
           required
           disabled={submitting}
-          className="w-full p-3 rounded-lg border border-gray-300 dark:border-brand-slate bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
+          className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
         >
           <option value="">-- Choose a League --</option>
           {leagues.map((league) => (
@@ -99,7 +99,7 @@ export default function JoinTeamForm({ leagues, teams }: JoinTeamFormProps) {
           onChange={(e) => setSelectedTeam(e.target.value)}
           required
           disabled={submitting || !selectedLeague}
-          className="w-full p-3 rounded-lg border border-gray-300 dark:border-brand-slate bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
+          className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white"
         >
           <option value="">-- Choose a Team --</option>
           {filteredTeams.map((team) => (

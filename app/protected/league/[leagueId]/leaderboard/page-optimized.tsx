@@ -2,8 +2,6 @@ import { createClient } from "@/utils/supabase/server";
 import { calculateLeagueLeaderboard } from "@/lib/leaderboard";
 import Link from "next/link";
 
-export const revalidate = 60; // Cache for 60 seconds
-
 export default async function LeaderboardPage({
   params,
 }: {
@@ -24,29 +22,25 @@ export default async function LeaderboardPage({
 
   // Fetch player names for each team (optimized - 1 query for all teams)
   const teamIds = leaderboard.map(t => t.teamId);
-  
-  let teamPlayersMap = new Map<string, string[]>();
-  
-  if (teamIds.length > 0) {
-    const { data: teamMembers } = await supabase
-      .from('team_members')
-      .select('team_id, player:players(name, surname)')
-      .in('team_id', teamIds);
+  const { data: teamMembers } = await supabase
+    .from('team_members')
+    .select('team_id, player:players(name, surname)')
+    .in('team_id', teamIds);
 
-    // Build a map of team -> players
-    teamMembers?.forEach((member: any) => {
-      const teamId = member.team_id;
-      const playerName = member.player ? `${member.player.name} ${member.player.surname}` : 'TBD';
-      
-      if (!teamPlayersMap.has(teamId)) {
-        teamPlayersMap.set(teamId, []);
-      }
-      teamPlayersMap.get(teamId)!.push(playerName);
-    });
-  }
+  // Build a map of team -> players
+  const teamPlayersMap = new Map<string, string[]>();
+  teamMembers?.forEach((member: any) => {
+    const teamId = member.team_id;
+    const playerName = member.player ? `${member.player.name} ${member.player.surname}` : 'TBD';
+    
+    if (!teamPlayersMap.has(teamId)) {
+      teamPlayersMap.set(teamId, []);
+    }
+    teamPlayersMap.get(teamId)!.push(playerName);
+  });
 
   return (
-    <div className="max-w-6xl mx-auto px-5 pt-8 space-y-6 animate-fade-in">
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
       {/* Header */}
       <div className="border-b border-gray-200 dark:border-gray-800 pb-6">
         <div className="flex items-center justify-between">
@@ -62,7 +56,7 @@ export default async function LeaderboardPage({
             href="/protected/leaderboards"
             className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors"
           >
-            ← Back
+            ← Back to all leagues
           </Link>
         </div>
       </div>
@@ -89,11 +83,11 @@ export default async function LeaderboardPage({
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Rank</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Team</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Players</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Pts</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">P</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">W</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Sets</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Games</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Points</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Played</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Won</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Set Diff</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Games Diff</th>
                 </tr>
               </thead>
               <tbody>
@@ -109,7 +103,13 @@ export default async function LeaderboardPage({
                       key={row.teamId}
                       className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
-                      <td className="px-6 py-4 text-gray-900 dark:text-white font-semibold">{index + 1}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {index + 1}
+                          </span>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{row.teamName}</td>
                       <td className="px-6 py-4">
                         <div className="space-y-1">
@@ -128,12 +128,16 @@ export default async function LeaderboardPage({
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="inline-flex items-center justify-center w-10 h-10 bg-orange-500 text-white font-bold rounded-lg">
+                        <span className="inline-flex items-center justify-center w-10 h-10 bg-orange-500 text-white font-bold text-lg rounded-lg">
                           {row.points}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-400 font-medium">{row.matchesPlayed}</td>
-                      <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-400 font-medium">{row.matchesWon}</td>
+                      <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-400 font-medium">
+                        {row.matchesPlayed}
+                      </td>
+                      <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-400 font-medium">
+                        {row.matchesWon}
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`font-semibold ${setDiff > 0 ? 'text-green-600 dark:text-green-400' : setDiff < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
                           {setDiff > 0 ? '+' : ''}{setDiff}
@@ -165,6 +169,7 @@ export default async function LeaderboardPage({
                   key={row.teamId}
                   className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 bg-white dark:bg-gray-900"
                 >
+                  {/* Rank & Team */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <span className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-gray-900 dark:text-white">
@@ -172,11 +177,18 @@ export default async function LeaderboardPage({
                       </span>
                       <div>
                         <div className="font-bold text-lg text-gray-900 dark:text-white">{row.teamName}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Rank #{index + 1}</div>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-orange-500">{row.points}</div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-500">
+                        {row.points}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">points</div>
+                    </div>
                   </div>
 
+                  {/* Players */}
                   <div className="mb-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <span className="w-6 h-6 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center text-white dark:text-gray-900 text-xs font-medium">
@@ -192,6 +204,7 @@ export default async function LeaderboardPage({
                     </div>
                   </div>
 
+                  {/* Stats Grid */}
                   <div className="grid grid-cols-4 gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="text-center">
                       <div className="text-lg font-bold text-gray-900 dark:text-white">{row.matchesPlayed}</div>
@@ -205,13 +218,13 @@ export default async function LeaderboardPage({
                       <div className={`text-lg font-bold ${setDiff > 0 ? 'text-green-600 dark:text-green-400' : setDiff < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
                         {setDiff > 0 ? '+' : ''}{setDiff}
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Sets</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Set Diff</div>
                     </div>
                     <div className="text-center">
                       <div className={`text-lg font-bold ${gamesDiff > 0 ? 'text-green-600 dark:text-green-400' : gamesDiff < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
                         {gamesDiff > 0 ? '+' : ''}{gamesDiff}
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Games</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Games Diff</div>
                     </div>
                   </div>
                 </div>

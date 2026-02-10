@@ -149,9 +149,9 @@ export default function AdminPage() {
   }, [leagues, teams]);
 
   return (
-    <div className="max-w-6xl mx-auto px-5 pt-8 space-y-8 animate-fade-in">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="border-b border-gray-200 dark:border-brand-slate pb-6">
+      <div className="border-b border-gray-200 dark:border-gray-800 pb-6">
         <h1 className="text-4xl font-bold mb-2 text-gray-900 dark:text-white">
           Admin Dashboard
         </h1>
@@ -168,13 +168,13 @@ export default function AdminPage() {
       )}
 
       {/* Manage Leagues */}
-      <section className="bg-white dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-6">
+      <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
         <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Manage Leagues</h2>
         <div className="space-y-3">
           {leagues?.map((league) => (
             <div
               key={league.id}
-              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg"
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
             >
               <div>
                 <p className="font-semibold text-lg text-gray-900 dark:text-white">{league.name}</p>
@@ -205,7 +205,7 @@ export default function AdminPage() {
       </section>
 
       {/* Assign Teams to League */}
-      <section className="bg-white dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-6">
+      <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
         <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Assign Team to League</h2>
         
         <form onSubmit={handleAssignTeam} className="space-y-4">
@@ -218,7 +218,7 @@ export default function AdminPage() {
               required
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
-              className="w-full p-3 rounded-lg border border-gray-300 dark:border-brand-slate bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all text-gray-900 dark:text-white"
+              className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all text-gray-900 dark:text-white"
             >
               <option value="">-- Select Team --</option>
               {teams?.map((team) => (
@@ -238,7 +238,7 @@ export default function AdminPage() {
               required
               value={selectedLeague}
               onChange={(e) => setSelectedLeague(e.target.value)}
-              className="w-full p-3 rounded-lg border border-gray-300 dark:border-brand-slate bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all text-gray-900 dark:text-white"
+              className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all text-gray-900 dark:text-white"
             >
               <option value="">-- Select League --</option>
               {leagues?.map((league) => (
@@ -259,14 +259,14 @@ export default function AdminPage() {
       </section>
 
       {/* Teams Overview */}
-      <section className="bg-white dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-6">
+      <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
         <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Teams in Leagues</h2>
         
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {leagues.map((league) => {
             const list = teamsByLeague[league.id] || [];
             return (
-              <div key={league.id} className="border border-gray-200 dark:border-brand-slate rounded-lg p-4 bg-gray-50 dark:bg-brand-slate">
+              <div key={league.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{league.name}</h3>
                   <span className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs font-medium">
@@ -276,7 +276,7 @@ export default function AdminPage() {
                 {list.length ? (
                   <ul className="space-y-2">
                     {list.map((t) => (
-                      <li key={t.id} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-brand-slate">
+                      <li key={t.id} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
                         <span className="font-medium text-gray-900 dark:text-white">{t.name}</span>
                         <button
                           type="button"
@@ -299,7 +299,7 @@ export default function AdminPage() {
           })}
 
           {/* Unassigned */}
-          <div className="border border-gray-200 dark:border-brand-slate rounded-lg p-4 bg-gray-50 dark:bg-brand-slate">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Unassigned</h3>
               <span className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs font-medium">
@@ -309,7 +309,7 @@ export default function AdminPage() {
             {unassignedTeams.length ? (
               <ul className="space-y-2">
                 {unassignedTeams.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-brand-slate">
+                  <li key={t.id} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
                     <span className="font-medium text-gray-900 dark:text-white">{t.name}</span>
                     <button
                       type="button"
@@ -329,7 +329,7 @@ export default function AdminPage() {
       </section>
 
       {/* All Matches */}
-      <section className="bg-white dark:bg-brand-slate border border-gray-200 dark:border-brand-slate rounded-lg p-6">
+      <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">All Matches</h2>
           
@@ -338,7 +338,7 @@ export default function AdminPage() {
             <select
               value={leagueFilter}
               onChange={(e) => setLeagueFilter(e.target.value)}
-              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-brand-slate bg-white dark:bg-gray-950 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all text-gray-900 dark:text-white"
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all text-gray-900 dark:text-white"
             >
               <option value="">All leagues</option>
               {leagues.map((l) => (
@@ -350,7 +350,7 @@ export default function AdminPage() {
 
         <div className="space-y-3">
           {filteredMatches.map((m: any) => (
-            <div key={m.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-gray-200 dark:border-brand-slate rounded-lg bg-gray-50 dark:bg-brand-slate gap-3">
+            <div key={m.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 gap-3">
               <div className="flex-1">
                 <div className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">
                   {teamById[m.team1_id] || "Team 1"} vs {teamById[m.team2_id] || "Team 2"}
