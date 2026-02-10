@@ -61,15 +61,15 @@ export default function RootLayout({
             <div className="h-16" />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col w-full pb-20">
+            <div className="flex-1 flex flex-col w-full md:pb-20">
               {children}
               <Analytics />
             </div>
 
-            {/* Fixed Footer */}
-            <footer className="w-full border-t border-border py-6 bg-background fixed bottom-0 left-0 z-40">
+            {/* Footer - Fixed on desktop, relative on mobile */}
+            <footer className="w-full border-t border-border py-6 bg-background relative md:fixed md:bottom-0 md:left-0 z-40">
               <div className="max-w-7xl mx-auto px-5">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
                   {/* Footer Logo */}
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-semibold text-brand-orange">
@@ -78,7 +78,7 @@ export default function RootLayout({
                   </div>
 
                   {/* Footer Links */}
-                  <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm text-muted-foreground">
                     <Link href="/" className="hover:text-brand-orange transition-colors">
                       Home
                     </Link>
@@ -95,7 +95,7 @@ export default function RootLayout({
                   </div>
 
                   {/* Copyright */}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground text-center md:text-left">
                     © 2026 Padel Liga
                   </p>
                 </div>

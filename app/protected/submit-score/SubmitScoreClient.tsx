@@ -50,13 +50,13 @@ export default function SubmitScoreClient({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-2xl mx-auto">
       <input type="hidden" name="matchId" value={matchId} />
       
       {/* Match Date Selection */}
-      <div className="border p-4 rounded bg-blue-50 dark:bg-blue-900/20">
-        <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium">When was this match played?</span>
+      <div className="border border-border p-5 rounded-xl bg-card">
+        <label className="flex flex-col gap-3">
+          <span className="text-sm font-semibold text-foreground">When was this match played?</span>
           <input
             type="date"
             name="matchDate"
@@ -65,22 +65,22 @@ export default function SubmitScoreClient({
             max={new Date().toISOString().split('T')[0]} // Can't select future dates
             required
             disabled={submitting}
-            className="border p-2 rounded disabled:opacity-50"
+            className="border border-border p-3 rounded-lg bg-background text-foreground disabled:opacity-50 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange outline-none transition-all text-base"
           />
         </label>
       </div>
 
       {[1, 2, 3].map((setNumber) => (
-        <div key={setNumber} className="border p-2 rounded">
-          <h3 className="font-semibold">Set {setNumber}</h3>
+        <div key={setNumber} className="border border-border p-5 rounded-xl bg-card space-y-4">
+          <h3 className="text-lg font-semibold text-foreground">Set {setNumber}</h3>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">{team1Name} Games</span>
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-semibold text-foreground">{team1Name} Games</span>
             <select 
               name={`set${setNumber}_team1`} 
               required 
               disabled={submitting}
-              className="border p-1 disabled:opacity-50"
+              className="border border-border p-3 rounded-lg bg-background text-foreground disabled:opacity-50 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange outline-none transition-all text-base"
             >
               {Array.from({ length: 8 }, (_, i) => (
                 <option key={i} value={i}>
@@ -90,13 +90,13 @@ export default function SubmitScoreClient({
             </select>
           </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">{team2Name} Games</span>
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-semibold text-foreground">{team2Name} Games</span>
             <select 
               name={`set${setNumber}_team2`} 
               required 
               disabled={submitting}
-              className="border p-1 disabled:opacity-50"
+              className="border border-border p-3 rounded-lg bg-background text-foreground disabled:opacity-50 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange outline-none transition-all text-base"
             >
               {Array.from({ length: 8 }, (_, i) => (
                 <option key={i} value={i}>
@@ -106,13 +106,13 @@ export default function SubmitScoreClient({
             </select>
           </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">Set Winner</span>
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-semibold text-foreground">Set Winner</span>
             <select 
               name={`set${setNumber}_winner`} 
               required 
               disabled={submitting}
-              className="border p-1 disabled:opacity-50"
+              className="border border-border p-3 rounded-lg bg-background text-foreground disabled:opacity-50 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange outline-none transition-all text-base"
             >
               <option value="">-- Select Winner --</option>
               <option value="1">{team1Name}</option>
@@ -124,7 +124,7 @@ export default function SubmitScoreClient({
 
       <SubmitButton
         type="submit"
-        className="px-4 py-2 rounded transition"
+        className="w-full py-4 px-6 rounded-lg transition text-base font-semibold bg-brand-orange hover:bg-brand-orange/90 shadow-sm"
         disabled={submitting}
       >
         {submitting ? "Submitting..." : "Submit Scores"}

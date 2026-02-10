@@ -65,10 +65,10 @@ export default function MatchCard({
           </div>
         </div>
         
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm text-brand-orange hover:opacity-90 font-semibold transition-colors"
+            className="flex items-center justify-center sm:justify-start gap-2 text-sm text-brand-orange hover:opacity-90 font-semibold transition-colors py-2"
           >
             <User className="h-4 w-4" />
             {isExpanded ? "Hide details" : "View opponent details"}
@@ -79,8 +79,8 @@ export default function MatchCard({
             )}
           </button>
           
-          <Link href={`/protected/submit-score?matchId=${matchId}`}>
-            <SubmitButton className="text-sm px-5 py-2.5 bg-brand-orange hover:bg-brand-orange/90 shadow-sm transition-all">
+          <Link href={`/protected/submit-score?matchId=${matchId}`} className="w-full sm:w-auto">
+            <SubmitButton className="w-full text-sm px-6 py-3 bg-brand-orange hover:bg-brand-orange/90 shadow-sm transition-all">
               Submit score
             </SubmitButton>
           </Link>

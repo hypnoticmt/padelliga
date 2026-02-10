@@ -71,21 +71,26 @@ export default async function SubmitScorePage({
   // Check if match is already completed and user is not admin
   if (matchData.status === "Completed" && !player?.is_admin) {
     return (
-      <div className="p-5">
-        <div className="max-w-md mx-auto border rounded-lg p-6 bg-yellow-50 dark:bg-yellow-900/20">
-          <h2 className="text-xl font-bold mb-4">Score Already Submitted</h2>
-          <p className="mb-4">
+      <div className="max-w-6xl mx-auto px-5 pt-8 pb-10 animate-fade-in">
+        <div className="max-w-md mx-auto border border-border rounded-xl p-8 bg-card text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
+            <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-semibold mb-3 text-foreground">Score Already Submitted</h2>
+          <p className="mb-4 text-muted-foreground">
             This match has already been completed. The final score is:
           </p>
-          <p className="text-2xl font-bold text-center my-4">
+          <p className="text-3xl font-bold text-brand-orange my-6">
             {matchData.score_summary || "N/A"}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground mb-6">
             If you believe there's an error, please contact an administrator to modify the scores.
           </p>
           <a 
             href="/protected" 
-            className="mt-4 block text-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="inline-block w-full sm:w-auto px-6 py-3 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold rounded-lg transition-colors"
           >
             Back to Dashboard
           </a>
@@ -109,14 +114,17 @@ export default async function SubmitScorePage({
   const SubmitScoreClient = (await import("./SubmitScoreClient")).default;
 
   return (
-    <div className="p-5">
-      <h1 className="text-2xl font-bold mb-4">
-        {isEditing ? "Edit Match Score (Admin)" : "Submit Match Score"}
-      </h1>
+    <div className="max-w-6xl mx-auto px-5 pt-8 pb-10 space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-3xl sm:text-4xl font-semibold text-foreground mb-2">
+          {isEditing ? "Edit Match Score (Admin)" : "Submit Match Score"}
+        </h1>
+        <p className="text-muted-foreground">Enter the results for this match</p>
+      </div>
       
       {isEditing && (
-        <div className="mb-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded">
-          <p className="text-orange-800 dark:text-orange-200">
+        <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+          <p className="text-orange-800 dark:text-orange-200 font-semibold">
             ⚠️ You are editing an already submitted score. Current score: {matchData.score_summary}
           </p>
         </div>

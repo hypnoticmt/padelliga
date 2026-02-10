@@ -73,7 +73,7 @@ export default async function PrivatePage({
           </p>
           <Link
             href="/protected/edit-profile"
-            className="mt-6 inline-block px-6 py-3 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold rounded-lg transition-colors"
+            className="mt-6 inline-block w-full sm:w-auto px-8 py-4 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold rounded-lg transition-colors text-center"
           >
             Complete profile
           </Link>
@@ -187,16 +187,16 @@ export default async function PrivatePage({
           <h1 className="text-3xl sm:text-4xl font-semibold text-foreground">Dashboard</h1>
           <p className="mt-1 text-muted-foreground">Welcome back, {userName}.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Link
             href="/protected/edit-profile"
-            className="px-4 py-2 rounded-lg border border-border bg-background text-foreground text-sm font-semibold hover:border-brand-orange transition-colors"
+            className="w-full sm:w-auto px-5 py-3 rounded-lg border border-border bg-background text-foreground text-sm font-semibold hover:border-brand-orange transition-colors text-center"
           >
             Edit profile
           </Link>
           <Link
             href="/protected/leaderboards"
-            className="px-4 py-2 rounded-lg border border-border bg-background text-foreground text-sm font-semibold hover:border-brand-orange transition-colors"
+            className="w-full sm:w-auto px-5 py-3 rounded-lg border border-border bg-background text-foreground text-sm font-semibold hover:border-brand-orange transition-colors text-center"
           >
             Leaderboards
           </Link>
@@ -217,10 +217,10 @@ export default async function PrivatePage({
 
           {/* Team card */}
           <div className="bg-card border border-border rounded-xl p-6">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-4">
               <div className="flex items-start gap-4">
                 <IconBadge src="/icons/flaticon/team-people.png" alt="Team" />
-                <div>
+                <div className="flex-1">
                   <p className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">Team</p>
                   <p className="mt-2 text-xl font-semibold text-foreground">
                     {team?.name ?? "No team"}
@@ -228,18 +228,18 @@ export default async function PrivatePage({
                 </div>
               </div>
               {!team && (
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Link
                     href="/protected/create-team"
-                    className="px-4 py-2 bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold rounded-lg"
+                    className="w-full sm:flex-1 px-5 py-3 bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold rounded-lg text-center"
                   >
-                    Create
+                    Create Team
                   </Link>
                   <Link
                     href="/protected/join-team"
-                    className="px-4 py-2 border border-border bg-background text-foreground text-sm font-semibold rounded-lg hover:border-brand-orange"
+                    className="w-full sm:flex-1 px-5 py-3 border border-border bg-background text-foreground text-sm font-semibold rounded-lg hover:border-brand-orange text-center"
                   >
-                    Join
+                    Join Team
                   </Link>
                 </div>
               )}
